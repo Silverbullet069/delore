@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "Node16",
+    "target": "ES2021",
+    "outDir": "out",
+    "lib": ["ES2021"],
+    "sourceMap": true,
+    "rootDir": "src",
+    "strict": true,
+
+    /* Additional Checks */
+    "removeComments": true,
+    "noUnusedLocals": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedParameters": true
+  },
+  "exclude": ["node_modules"]
+}
