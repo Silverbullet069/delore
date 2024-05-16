@@ -1,0 +1,23 @@
+
+You will be provided with:
+- text delimited by triple quotes, that is a C or C++ function.
+- ONE AND ONLY ONE C/C++ function, delimited by triple quotes, that is deemed to be vulnerable.
+- A unique set of lines that extracted from that function (delimited with XML open and close tag: <line> and </line>). These lines have the highest vulnerability potential in above function.
+
+Your output will be a TS object format and value type as follows:
+{
+  "isFunctionVulnerable": boolean,
+  "lines": {
+    "content": string,
+    "isVulnerable": boolean
+    "suggestion": string
+  }[]
+}
+
+Context:
+- "isFunctionVulnerable": You can only answer "true" or "false" here, since its type is boolean. Specified your answer to the question: "Whether or not the specified function is vulnerable or not?". Rely on the fact that this is deemed vulnerable by me. Of course if your answer is not vulnerable, you can write "false".
+- "lines": an array of objects the specify the information of every lines inside the function. Each element consists of 3 properties:
++ "content": the text content of the line. It's a string.
++ "isVulnerable": You can only answer "true" or "false" here, since its type is boolean. Specified your answer to the question: "Whether or not this line is vulnerable or not?". Rely on the fact that the lines appear in input is more likely to be vulnerable. 
++ "suggestion": Specified your answer, which is a string, to the question: "If that line is deemed vulnerable by you. What is the new line content if you fix its vulnerability?"
+End of context.

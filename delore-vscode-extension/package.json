@@ -1,11 +1,15 @@
 {
   "name": "delore",
+  "publisher": "silverbullet069",
   "displayName": "DeLoRe",
   "description": "Detect, locate and repair C/C++ vulnerabilities.",
-  "version": "0.1",
+  "version": "1.0.0",
   "engines": {
-    "vscode": "^1.86.0"
+    "vscode": "^1.82.0"
   },
+  "extensionDependencies": [
+    "github.copilot-chat"
+  ],
   "categories": [
     "Other"
   ],
@@ -13,216 +17,348 @@
     "onLanguage:c",
     "onLanguage:cpp"
   ],
+  "enabledApiProposals": [
+    "languageModels"
+  ],
   "main": "./out/extension.js",
   "contributes": {
+    "configurationDefaults": {
+      "[plaintext]": {
+        "files.saveConflictResolution": "overwriteFileOnDisk"
+      }
+    },
     "configuration": {
       "title": "DeLoRe",
       "properties": {
         "delore.disableByDefault": {
           "type": "boolean",
           "default": "false",
-          "description": "Set whether user wants to disable DeLoRe without completely disable it in Extensions panel."
+          "description": "Set whether user wants to disable DeLoRe without completely disables it in Extensions panel."
         },
-        "delore.toggleLocalization": {
+        "delore.workingEnvironment": {
+          "type": "string",
+          "enum": [
+            "Local",
+            "Remote"
+          ],
+          "default": "Local",
+          "markdownDescription": "**Local**: DeLoRe sets up a Python virtual environment, installs required packages and downloads chosen models to your machine.\n\n**Remote**: DeLoRe sends request to a remote server that is being maintained by the publisher and retrieves data."
+        },
+        "delore.detection.active": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "isActive"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the model."
+              },
+              "isActive": {
+                "type": "boolean",
+                "description": "Whether the model is active or not."
+              }
+            }
+          },
+          "default": [
+            {
+              "name": "devign",
+              "isActive": false
+            },
+            {
+              "name": "linevd",
+              "isActive": false
+            },
+            {
+              "name": "linevul",
+              "isActive": true
+            }
+          ],
+          "order": 2
+        },
+        "delore.localization.toggle": {
           "type": "boolean",
           "default": "true",
-          "description": "Set whether the Localization Model is enabled or not."
+          "description": "Set whether to enable the Localization Model.",
+          "order": 1
         },
-        "delore.toggleRepairation": {
+        "delore.localization.active": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the model."
+              },
+              "isActive": {
+                "type": "boolean",
+                "description": "Whether the model is active or not."
+              }
+            },
+            "required": [
+              "name",
+              "isActive"
+            ]
+          },
+          "default": [
+            {
+              "name": "linevd",
+              "isActive": false
+            },
+            {
+              "name": "linevul",
+              "isActive": true
+            }
+          ],
+          "order": 2
+        },
+        "delore.repairation.toggle": {
           "type": "boolean",
           "default": "true",
-          "description": "Set whether the Repairation Model is enabled or not."
+          "description": "Set whether to enable the Repairation Model.",
+          "order": 1
         },
-        "delore.localInstallationDirectory": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Set virtual Python environment, install required packages download pre-training data for each chosen model. Extension will check the existance of this directory and create one if it doesn't exist.",
-          "editPresentation": "multilineText"
-        },
-        "delore.detectionModel": {
-          "type": "string",
-          "enum": [
-            "Devign",
-            "Custom"
-          ],
-          "default": "Devign",
-          "markdownEnumDescriptions": [
-            "Refer to [Devign's GitHub Repository](https://github.com/saikat107/Devign) for documentation.",
-            "User can use custom model. In order for the extension to be able to use it, please specify #delore.detectionModel.pathToCustomModule and #delore.detectionModel.pathToCustomPythonBinary\n**NOTE**: After `Custom` is being set, #delore.detectionModel.workingEnvironment is set to `Local` regardless of its current display value."
-          ]
-        },
-        "delore.detectionModel.workingEnvironment": {
-          "type": "string",
-          "enum": [
-            "Local",
-            "Remote"
-          ],
-          "default": "Local",
-          "markdownEnumDescriptions": [
-            "DeLoRe sets up a Python virtual environment specified at #delore.localInstallationDirectory, installs required packages and downloads chosen models to your machine.",
-            "DeLoRe sends request to a remote server that is being maintained by the publisher and retrieves data."
-          ]
-        },
-        "delore.detectionModel.pathToCustomModule": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Set the path point to the module of Detection Model. Extension will check the existance of the module. Only applies when #delore.detectionModel is set to `Custom`.",
-          "editPresentation": "multilineText"
-        },
-        "delore.detectionModel.pathToCustomPythonBinary": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Set the path point to the Python binary to run Custom Detection Model. If it's a binary from Python virtual environment, run `which python` after activation. Extension will check the existance of the binary. Only applies when #delore.detectionModel is set to `Custom`",
-          "editPresentation": "multilineText"
-        },
-        "delore.detectionModel.optionalParameters": {
+        "delore.repairation.active": {
           "type": "array",
-          "default": [],
-          "markdownDescription": "A list of parameters for Detection Model's configuration. Refers to #delore.detectionModel to check the documentation of current chosen AI model.",
           "items": {
-            "type": [
-              "string",
-              "number"
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the model."
+              },
+              "isActive": {
+                "type": "boolean",
+                "description": "Whether the model is inactive or not."
+              }
+            },
+            "required": [
+              "name",
+              "isActive"
             ]
-          }
-        },
-        "delore.localizationModel": {
-          "type": "string",
-          "enum": [
-            "LineVD",
-            "Custom"
+          },
+          "default": [
+            {
+              "name": "github-copilot-gpt4",
+              "isActive": true
+            },
+            {
+              "name": "gpt-4o",
+              "isActive": true
+            }
           ],
-          "default": "LineVD",
-          "markdownEnumDescriptions": [
-            "Refer to [LineVD's GitHub Repository](https://github.com/davidhin/linevd) for more details.",
-            "User can use custom model. In order for the extension to be able to use it, please specify #delore.localizationModel.pathToCustomModule and #delore.localizationModel.pathToCustomPythonBinary. \n**NOTE**: After `Custom` is being set, #delore.localizationModel.workingEnvironment is set to `Local` regardless of its current display value."
-          ]
+          "order": 2
         },
-        "delore.localizationModel.workingEnvironment": {
-          "type": "string",
-          "enum": [
-            "Local",
-            "Remote"
+        "delore.custom.detection": {
+          "type": "object",
+          "properties": {
+            "binary": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Binary. Remember to install all necessary libraries."
+            },
+            "module": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Module. Remember to check whether it used parameter or not."
+            },
+            "param": {
+              "type": "object",
+              "properties": {
+                "option": {
+                  "type": "string",
+                  "description": "The option for Python Module."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value for option parameter."
+                }
+              },
+              "required": [
+                "option",
+                "value"
+              ],
+              "default": {
+                "option": "e.g. --option",
+                "value": "e.g. <value>"
+              }
+            }
+          },
+          "required": [
+            "binary",
+            "module",
+            "param"
           ],
-          "default": "Local",
-          "markdownEnumDescriptions": [
-            "DeLoRe sets up a Python virtual environment specified at #delore.localInstallationDirectory, installs required packages and downloads chosen models to your machine.",
-            "DeLoRe sends request to a remote server that is being maintained by the publisher and retrieves data."
-          ]
+          "default": {},
+          "order": 100
         },
-        "delore.localizationModel.pathToCustomModule": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Set the path point to the module of Localization Model. Extension will check the existance of the module. Only applies when #delore.localizationModel is set to `Custom`.",
-          "editPresentation": "multilineText"
-        },
-        "delore.localizationModel.pathToCustomPythonBinary": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Set the path point to the Python binary to run Custom Localization Model. If it's a binary from Python virtual environment, run `which python` after activation. Extension will check the existance of the binary. Only applies when #delore.localizationModel is set to `Custom`",
-          "editPresentation": "multilineText"
-        },
-        "delore.localizationModel.optionalParameters": {
-          "type": "array",
-          "default": [],
-          "markdownDescription": "A list of parameter for Localization Model's configuration. Refers to #delore.localizationModel to check the current chosen AI model's docs.",
-          "items": {
-            "type": [
-              "string",
-              "number"
-            ]
-          }
-        },
-        "delore.repairationModel": {
-          "type": "string",
-          "enum": [
-            "VulRepair",
-            "Custom"
+        "delore.custom.localization": {
+          "type": "object",
+          "required": [
+            "binary",
+            "module",
+            "param"
           ],
-          "default": "VulRepair",
-          "markdownEnumDescriptions": [
-            "Refer to [VulRepair's GitHub Repository](https://github.com/awsm-research/VulRepair) for more details.",
-            "User can use custom model. In order for the extension to be able to use it, please specify #delore.repairationModel.pathToCustomModule and #delore.repairationModel.pathToCustomPythonBinary\n**NOTE**: After `Custom` is being set, #delore.repairationModel.workingEnvironment is set to `Local` regardless of its current display value."
-          ]
+          "default": {},
+          "properties": {
+            "binary": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Binary. Remember to install all necessary libraries."
+            },
+            "module": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Module. Remember to check whether it used parameter or not."
+            },
+            "param": {
+              "type": "object",
+              "required": [
+                "option",
+                "value"
+              ],
+              "default": {
+                "option": "e.g. --option",
+                "value": "e.g. <value>"
+              },
+              "properties": {
+                "option": {
+                  "type": "string",
+                  "description": "The option for Python Module."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value for option parameter."
+                }
+              }
+            }
+          },
+          "order": 101
         },
-        "delore.repairationModel.workingEnvironment": {
-          "type": "string",
-          "enum": [
-            "Local",
-            "Remote"
+        "delore.custom.repairation": {
+          "type": "object",
+          "required": [
+            "binary",
+            "module",
+            "param"
           ],
-          "default": "Local",
-          "markdownEnumDescriptions": [
-            "DeLoRe sets up a Python virtual environment specified at #delore.localInstallationDirectory, installs required packages and downloads chosen models to your machine.",
-            "DeLoRe sends request to a remote server that is being maintained by the publisher and retrieves data."
-          ]
-        },
-        "delore.repairationModel.pathToCustomModule": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Set the path point to the module of Repairation Model. Extension will check the existance of the module. Only applies when #delore.repairationModel is set to `Custom`.",
-          "editPresentation": "multilineText"
-        },
-        "delore.repairationModel.pathToCustomPythonBinary": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Set the path point to the Python binary to run Custom Repairation Model. If it's a binary from Python virtual environment, run `which python` after activation. Extension will check the existance of the binary. Only applies when #delore.repairationModel is set to `Custom`",
-          "editPresentation": "multilineText"
-        },
-        "delore.repairationModel.optionalParameters": {
-          "type": "array",
-          "default": [],
-          "markdownDescription": "A list of parameter to config Repairation Model. Refers to #delore.repairationModel to check the current chosen AI model's docs.",
-          "items": {
-            "type": [
-              "string",
-              "number"
-            ]
-          }
-        },
-        "delore.disableLanaguages": {
-          "type": "array",
-          "default": [],
-          "description": "By default, Delore will check vulnerabilities for all supported languages. Set the list of exception languages that don't get checked."
+          "default": {},
+          "properties": {
+            "binary": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Binary. Remember to install all necessary libraries."
+            },
+            "module": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Module. Remember to check whether it used parameter or not."
+            },
+            "param": {
+              "type": "object",
+              "required": [
+                "option",
+                "value"
+              ],
+              "default": {
+                "option": "e.g. --option",
+                "value": "e.g. <value>"
+              },
+              "properties": {
+                "option": {
+                  "type": "string",
+                  "description": "The option for Python Module."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value for option parameter."
+                }
+              }
+            }
+          },
+          "order": 102
         }
       }
     },
     "keybindings": [
       {
-        "command": "delore.activate-delore",
+        "command": "delore.activateDelore",
         "key": "alt+shift+d"
+      },
+      {
+        "command": "delore.testGithubCopilotIntegration",
+        "key": "alt+shift+r"
       }
     ],
     "commands": [
       {
-        "command": "delore.hello-world",
-        "title": "DeLoRe: Hello World"
+        "command": "delore.activateDelore",
+        "title": "DeLoRe: Activate DeLoRe"
       },
       {
-        "command": "delore.test",
-        "title": "DeLoRe: Test extension"
-      },
-      {
-        "command": "delore.test2",
-        "title": "DeLoRe: Test2 extension"
-      },
-      {
-        "command": "delore.detect",
-        "title": "DeLoRe: Detect vulnerabilities"
-      },
-      {
-        "command": "delore.locate",
-        "title": "DeLoRe: Locate vulnerabilities"
-      },
-      {
-        "command": "delore.repair",
-        "title": "DeLoRe: Repair vulnerabilities"
-      },
-      {
-        "command": "delore.delore",
-        "title": "DeLoRe: Run extension"
+        "command": "delore.testGithubCopilotIntegration",
+        "title": "DeLoRe: Test GitHub Copilot integration."
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "delore",
+          "title": "DeLoRe",
+          "icon": "$(bug)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "customOutlineView",
+        "contents": "This is DeLoRe's custom outline view. To get started, please [Open a file](command:vscode.open)."
+      },
+      {
+        "view": "detectionModelsView",
+        "contents": "It seems you don't have any active detection model. Please check VSCode Setting [DeLoRe's Detection Models Exclusion](command:workbench.action.openSettings?%22delore.detection.active%22)"
+      },
+      {
+        "view": "localizationModelsView",
+        "contents": "It seems you don't have any active localization model. Please check VSCode Setting [DeLoRe's Localization Models Exclusion](command:workbench.action.openSettings?%22delore.localization.active%22)"
+      },
+      {
+        "view": "repairationModelsView",
+        "contents": "It seems you don't have any active repairation model. Please check VSCode Setting [DeLoRe's Repairation Models Exclusion](command:workbench.action.openSettings?%22delore.repairation.active%22)"
+      }
+    ],
+    "views": {
+      "delore": [
+        {
+          "id": "customOutlineView",
+          "name": "Custom Outline",
+          "contextualTitle": ""
+        },
+        {
+          "id": "detectionModelView",
+          "name": "Detection Models",
+          "contextualTitle": ""
+        },
+        {
+          "id": "localizationModelView",
+          "name": "Localization Models",
+          "contextualTitle": ""
+        },
+        {
+          "id": "repairationModelView",
+          "name": "Repairation Models",
+          "contextualTitle": ""
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "delore.activateDelore",
+          "when": "editorFocus",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [],
+      "view/item/context": []
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -233,14 +369,19 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.87.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
+    "@types/vscode": "1.82",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3",
     "@vscode/test-cli": "^0.0.6",
-    "@vscode/test-electron": "^2.3.9"
+    "@vscode/test-electron": "^2.3.9",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "openai": "^4.47.1"
   }
 }

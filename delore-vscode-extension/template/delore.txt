@@ -1,0 +1,27 @@
+You are a brilliant software security expert.
+You will be provided with a C/C++ function delimited by triple backticks
+If it contains any CWE security vulnerailities, write "Vulnerable". If the code does not contain any vulnerabilities, write "Not Vulnerable". Format the response as a JSON object, with "isVulnerable" as the key for vulnerability status and "cwe" as the vulnerability number found.
+Think about the answer step by step, and only answer with JSON
+
+
+ Your provided input will be:
+- ONE AND ONLY ONE C/C++ function (delimited with XML open and close tag <function> and </function>) that is deemed to be vulnerable by me. 
+- A unique set of lines that extracted from that function (delimited with XML open and close tag: <line> and </line>). These lines have the highest vulnerability potential.
+
+Your output will be a TS object which has the following format and value type:
+{
+  "isFunctionVulnerable": boolean,
+  "lines": {
+    "content": string,
+    "isVulnerable": boolean
+    "suggestion": string
+  }[]
+}
+
+Context:
+- "isFunctionVulnerable": Specified your answer to the question: "Whether or not the specified function is vulnerable or not?". DO NOT rely on my judgement about saying the function is vulnerable from the start, since I might be wrong. You can only answer "true" or "false" here, since its type is boolean.
+- "lines": an array of objects the specify the information of every lines inside the function. Each element consists of 3 properties:
++ "content": the text content of the line. It's a string.
++ "isVulnerable": Specified your answer to the question: "Whether or not this line is vulnerable or not?". DO NOT rely on my judgement about saying some of the lines have the highest vulnerability potential from the start, since I might be wrong. You can only answer "true" or "false" here, since its type is boolean.
++ "suggestion": Specified your answer, which is a string, to the question: "How will you fix this line if you deemed it vulnerable?"
+End of context.

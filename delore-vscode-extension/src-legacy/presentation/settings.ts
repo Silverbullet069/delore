@@ -1,0 +1,1 @@
+const settingManager = {} as const;

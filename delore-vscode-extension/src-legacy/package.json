@@ -1,0 +1,328 @@
+{
+  "name": "delore",
+  "displayName": "DeLoRe",
+  "description": "Detect, locate and repair C/C++ vulnerabilities.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.86.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:c",
+    "onLanguage:cpp"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "DeLoRe",
+      "properties": {
+        "delore.disableByDefault": {
+          "type": "boolean",
+          "default": "false",
+          "description": "Set whether user wants to disable DeLoRe without completely disables it in Extensions panel.",
+          "order": 1
+        },
+        "delore.workingEnvironment": {
+          "type": "string",
+          "enum": [
+            "Local",
+            "Remote"
+          ],
+          "default": "Local",
+          "markdownDescription": "**Local**: DeLoRe sets up a Python virtual environment, installs required packages and downloads chosen models to your machine.\n\n**Remote**: DeLoRe sends request to a remote server that is being maintained by the publisher and retrieves data.",
+          "order": 2
+        },
+        "delore.toggle.localization": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Set whether to enable the Localization Model.",
+          "order": 1
+        },
+        "delore.toggle.repairation": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Set whether to enable the Repairation Model.",
+          "order": 2
+        },
+        "delore.preference.detection": {
+          "type": "string",
+          "enum": [
+            "Devign",
+            "LineVul",
+            "LineVD",
+            "Custom"
+          ],
+          "default": "LineVul",
+          "markdownDescription": "For more information, refer to each model's GitHub Repository: [Devign](https://github.com/saikat107/Devign), [LineVul](https://github.com/awsm-research/LineVul), [LineVD](https://github.com/davidhin/linevd), [Custom](https://github.com)",
+          "order": 1
+        },
+        "delore.preference.localization": {
+          "type": "string",
+          "enum": [
+            "LineVul",
+            "LineVD",
+            "Custom"
+          ],
+          "default": "LineVul",
+          "markdownDescription": "For more information, refer to each model's GitHub Repository: [LineVul](https://github.com/awsm-research/LineVul), [LineVD](https://github.com/davidhin/linevd), [Custom](https://github.com).",
+          "order": 2
+        },
+        "delore.preference.repairation": {
+          "type": "string",
+          "enum": [
+            "GPT4",
+            "Custom"
+          ],
+          "default": "GPT4",
+          "markdownDescription": "For more information, refer to each model's GitHub Repository: [GPT4](https://openai.com/gpt4), [Custom](https://github.com).",
+          "order": 3
+        },
+        "delore.custom.detection": {
+          "type": "object",
+          "required": [
+            "binary",
+            "module",
+            "param"
+          ],
+          "default": {},
+          "properties": {
+            "binary": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Binary. Remember to install all necessary libraries."
+            },
+            "module": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Module. Remember to check whether it used parameter or not."
+            },
+            "param": {
+              "type": "object",
+              "required": [
+                "option",
+                "value"
+              ],
+              "default": {
+                "option": "e.g. --option",
+                "value": "e.g. <value>"
+              },
+              "properties": {
+                "option": {
+                  "type": "string",
+                  "description": "The option for Python Module."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value for option parameter."
+                }
+              }
+            }
+          },
+          "order": 1
+        },
+        "delore.custom.localization": {
+          "type": "object",
+          "required": [
+            "binary",
+            "module",
+            "param"
+          ],
+          "default": {},
+          "properties": {
+            "binary": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Binary. Remember to install all necessary libraries."
+            },
+            "module": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Module. Remember to check whether it used parameter or not."
+            },
+            "param": {
+              "type": "object",
+              "required": [
+                "option",
+                "value"
+              ],
+              "default": {
+                "option": "e.g. --option",
+                "value": "e.g. <value>"
+              },
+              "properties": {
+                "option": {
+                  "type": "string",
+                  "description": "The option for Python Module."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value for option parameter."
+                }
+              }
+            }
+          },
+          "order": 2
+        },
+        "delore.custom.repairation": {
+          "type": "object",
+          "required": [
+            "binary",
+            "module",
+            "param"
+          ],
+          "default": {},
+          "properties": {
+            "binary": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Binary. Remember to install all necessary libraries."
+            },
+            "module": {
+              "type": "string",
+              "description": "The absolute path to user-specific Python Module. Remember to check whether it used parameter or not."
+            },
+            "param": {
+              "type": "object",
+              "required": [
+                "option",
+                "value"
+              ],
+              "default": {
+                "option": "e.g. --option",
+                "value": "e.g. <value>"
+              },
+              "properties": {
+                "option": {
+                  "type": "string",
+                  "description": "The option for Python Module."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value for option parameter."
+                }
+              }
+            }
+          },
+          "order": 3
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "delore.activateDelore",
+        "key": "alt+shift+d"
+      }
+    ],
+    "commands": [
+      {
+        "command": "delore.test1",
+        "title": "DeLoRe: Test 1"
+      },
+      {
+        "command": "delore.test2",
+        "title": "DeLoRe: Test 2"
+      },
+      {
+        "command": "delore.test3",
+        "title": "DeLoRe: Test 3"
+      },
+      {
+        "command": "delore.activateDelore",
+        "title": "DeLoRe: Activate DeLoRe"
+      },
+      {
+        "command": "delore.testViewTitle",
+        "title": "DeLoRe: Test View Title"
+      },
+      {
+        "command": "delore.testViewTitleNavigation",
+        "title": "DeLoRe: Test View Title Navigation",
+        "icon": "$(extensions-refresh)"
+      },
+      {
+        "command": "delore.testViewItemContext",
+        "title": "DeLoRe: Test View Item Context"
+      },
+      {
+        "command": "delore.testViewItemContextInline",
+        "title": "DeLoRe: Test View Item Context Inline",
+        "icon": "$(pencil)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "delore",
+          "title": "DeLoRe",
+          "icon": "$(bug)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "delore",
+        "contents": "TODO: Add Welcome view content here"
+      }
+    ],
+    "views": {
+      "delore": [
+        {
+          "id": "detection-models-view",
+          "name": "Detection Models",
+          "icon": "$(gear)",
+          "contextualTitle": "List of default Detection Models"
+        },
+        {
+          "id": "localization-models-view",
+          "name": "Localization Models",
+          "icon": "$(gear)",
+          "contextualTitle": "List of default Localization Models"
+        },
+        {
+          "id": "repairation-models-view",
+          "name": "Repairation Models",
+          "icon": "$(gear)",
+          "contextualTitle": "List of default Repairation Models"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "delore.test1",
+          "when": "editorFocus && (editorHasSelection || editorHasMultipleSelections)",
+          "group": "navigation"
+        },
+        {
+          "command": "delore.test2",
+          "when": "editorFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "delore.activateDelore",
+          "when": "editorFocus",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [],
+      "view/item/context": []
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.87.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  }
+}

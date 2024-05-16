@@ -1,0 +1,55 @@
+{
+  "isFunctionVulnerable": true,
+  "lines": [
+    {
+      "content": "gray_render_span( ",
+      "isVulnerable": false,
+      "suggestion": ""
+    },
+    {
+      "content": "p = (unsigned char*)map->buffer - y * map->pitch;",
+      "isVulnerable": true,
+      "suggestion": "Check if 'map->pitch' is not zero before performing multiplication operation to avoid possible integer overflow. Add assertion or conditional statement to handle this case."
+    },
+    {
+      "content": "p += ( map->rows - 1 ) * map->pitch;",
+      "isVulnerable": true,
+      "suggestion": "Potential integer overflow when multiplying 'map->rows' and 'map->pitch'. Check if 'map->pitch' is not zero before multiplication."
+    },
+    {
+      "content": "/* For small-spans it is faster to do it by ourselves than\n",
+      "isVulnerable": false,
+      "suggestion": ""
+    },
+    {
+      "content": "* calling `memset'.  This is mainly due to the cost of the",
+      "isVulnerable": false,
+      "suggestion": ""
+    },
+    {
+      "content": "FT_MEM_SET( p + spans->x, (unsigned char)coverage, spans->len );",
+      "isVulnerable": true,
+      "suggestion": "Check if 'spans->x' and 'spans->len' values would cause p + spans->x to go out of bounds of allocated memory for 'p'."
+    },
+    {
+      "content": "unsigned char*  q = p + spans->x;",
+      "isVulnerable": true,
+      "suggestion": "Check if 'spans->x' values would cause p + spans->x to go out of bounds of allocated memory for 'p'."
+    },
+    {
+      "content": "case 7: *q++ = (unsigned char)coverage;",
+      "isVulnerable": true,
+      "suggestion": "Validate that incrementing 'q' pointer does not go out of bounds of the allocated memory for 'q'."
+    },
+    {
+      "content": "case 5: *q++ = (unsigned char)coverage;",
+      "isVulnerable": true,
+      "suggestion": "Validate that incrementing 'q' pointer does not go out of bounds of the allocated memory for 'q'."
+    },
+    {
+      "content": "case 3: *q++ = (unsigned char)coverage;",
+      "isVulnerable": true,
+      "suggestion": "Validate that incrementing 'q' pointer does not go out of bounds of the allocated memory for 'q'."
+    }
+  ]
+}

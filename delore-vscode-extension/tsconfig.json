@@ -2,20 +2,26 @@
   "compilerOptions": {
     "module": "Node16",
     "target": "ES2021",
+
+    // "sourceMap": true,
     "outDir": "out",
     "lib": ["ES2021"],
-    "sourceMap": true,
+
     "rootDir": "src",
     "strict": true,
-
-    /* Additional Checks */
+    "allowSyntheticDefaultImports": true,
     "removeComments": true,
     "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
     "noImplicitAny": true,
-    "strictNullChecks": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedParameters": true
+    "noFallthroughCasesInSwitch": true
+
+    // enable import JSON file
+    // NOTE: it's better to use 'fs' package
+    // "esModuleInterop": true,
+    // "resolveJsonModule": true
   },
-  "exclude": ["node_modules"]
+  "exclude": ["src-legacy"]
 }

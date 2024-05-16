@@ -1,5 +1,11 @@
-out
+build
 dist
+out
 node_modules
 .vscode-test/
 *.vsix
+
+python/ai_models/*
+python/virtual_envs/*
+temp
+env

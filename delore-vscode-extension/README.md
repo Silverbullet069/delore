@@ -1,71 +1,115 @@
-# delore-vscode-extension README
 
-This is the README for your extension "delore-vscode-extension". After writing up a brief description, we recommend including the following sections.
 
-## Features
+<h1 align="center">
+    DeLoRe - Detecting, Locating and Repairing C/C++ Software Vulnerabilities
+</h1>
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+This is a **[Visual Studio Code](https://github.com/Microsoft/vscode)** extension, which can automatically:
+1. Detect vulnerabilities at function-level.
+2. Locate vulnerabilities specifically at line-level.
+3. Repair vulnerabilities by providing suggestions to the user.
 
-For example if there is an image subfolder under your extension project workspace:
+## Table of contents
+1. [Introduction](#introduction)
+2. [Installation](#installation)
+3. [Demo](#demo)
+4. [Requirements](#requirements)
+5. [Development](#development)
+6. [What's next?](#whats-next)
+7. [Contributors](#contributors)
+8. [References](#references)
 
-\!\[feature X\]\(images/feature-x.png\)
+## Introduction
+In the modern digital age, the security of software applications is of paramount importance. Vulnerabilities in software can lead to serious consequences, including data breaches, system downtime, loss of user trust, ... Despite the best efforts of developers, vulnerabilities can still creep into software due to a variety of reasons such as coding errors, lack of understanding of security principles, or the complexity of modern software systems.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+This is where a tool like DeLoRe comes into play. DeLoRe is a [Visual Studio Code](https://github.com/Microsoft/vscode) extension that is designed as an **AI wrapper** to automatically **detect, locate, and repair** vulnerabilities in **C/C++ software**. It operates at the function level, pinpointing vulnerabilities at the line level, and provides suggestions for repairing these vulnerabilities.
+
+By integrating DeLoRe into the development process, developers can catch and fix vulnerabilities early, before they become a problem. This not only improves the security of the software but also saves time and resources that would otherwise be spent on dealing with the consequences of a security breach.
+
+[Back to ToC](#table-of-contents)
+
+## Installation
+
+...insert marketplace URL here
+
+[Back to ToC](#table-of-contents)
+
+## Demo
+
+<u>_Commands_</u>: **`Shift`** + **`Alt`** + **`D`**
+
+...insert gif image here
+
+[Back to ToC](#table-of-contents)
 
 ## Requirements
+- [**NodeJS**](https://nodejs.org/en/download/) (>= *v20*)
+- [**Python**](https://www.python.org/downloads/) (tested in *v3.10.12*)
+- [**Visual Studio Code**](https://code.visualstudio.com/download) (tested in *v1.82.0*)
+- [**unzip**](https://linuxize.com/post/how-to-unzip-files-in-linux) (Linux only)
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+[Back to ToC](#table-of-contents)
 
-## Extension Settings
+## Development
+1. Clone the repository and change directory
+```sh
+$ git clone --depth 1 git@github.com:Silverbullet069/delore.git && cd ./delore/delore-vscode-extension
+```
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+2. Install NodeJS dependencies
+```sh
+$ npm install
+```
 
-For example:
+3. Setup Python development environment
+```sh
+$ python -m venv ./python/virtual_envs/py-delore
+$ source ./python/virtual_envs/py-delore/bin/activate[.fish] # if your terminal is Fish shell
+$ pip install -r requirements.txt
+```
 
-This extension contributes the following settings:
+4. Download AI Models from Google Drive
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+> <u>_NOTE:_</u>: make sure you save enough disk space for this step
 
-## Known Issues
+You can remove `&& rm <model>.zip` to retain your archive files.
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+```sh
+# Devign
+$ gdown https://drive.google.com/file/d/1uhT71kvoJ87Eb4hCjPdP-Ekww8SaJ35W/view?usp=sharing && unzip devign.zip -d ./python/ai_models && rm devign.zip
 
-## Release Notes
+# LineVul
+$ gdown https://drive.google.com/file/d/1-A8WUw-4WnaeLRNsv3sUnfUXeJLmm1RG/view?usp=sharing && unzip linevul.zip -d ./python/ai_models && rm linevul.zip
 
-Users appreciate release notes as you update your extension.
+# LineVD
+$ gdown https://drive.google.com/file/d/1HQbCRMSixoKa_Y-nJK_bAvY9MSK2E72O/view?usp=sharing && unzip linevd.zip -d ./python/ai_models && rm linevd.zip
+```
 
-### 1.0.0
+[Back to ToC](#table-of-contents)
 
-Initial release of ...
 
-### 1.0.1
+## What's next?
+DeLoRe has covered all basic functionalities and some nitty-gritty UI/UX features. However, there are some advanced features that contributors can consider:
 
-Fixed issue #.
+- Let User toggle between **Local** or **Remote** mode. For now, DeLoRe is in **Local** mode, which means all resources are downloaded and stored in user machine. To develop **Remote** mode, contributors can:
+    + Create a simple Python Back-end using Flask, FastAPI, Django, ... etc.
+    + Read about the Standardized Input and Output that works with **EVERY** Python model and design REST APIs.
+    
+- Let User add their custom models. DeLoRe is designed so it can **merge the results of multiple models into one.** The more models it has, the better the result is. To develop this feature, contributors can:
+    + Redefined the input and output of some unused AI models in the future to achieve compatibility with Standardized Input and Output.
 
-### 1.1.0
 
-Added features X, Y, and Z.
+[Back to ToC](#table-of-contents)
 
----
+## Contributors
 
-## Following extension guidelines
+Special thanks to my third-year junior [Uyen Pham](https://github.com/21020419PhamTuUyen) for training, evaluating, refining and redefining Devign and LineVD model.
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+[Back to ToC](#table-of-contents)
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+## References 
+- **Devign**: https://github.com/saikat107/Devign
+- **LineVul**: https://github.com/awsm-research/LineVul
+- **LineVD**: https://github.com/davidhin/linevd
 
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+[Back to ToC](#table-of-contents)
