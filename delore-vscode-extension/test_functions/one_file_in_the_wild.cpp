@@ -49,6 +49,7 @@ int main() {
 #include <stdio.h>
 
 void dos() {
+  //
 int i;
 char inLine[64];
 cin >> inLine;

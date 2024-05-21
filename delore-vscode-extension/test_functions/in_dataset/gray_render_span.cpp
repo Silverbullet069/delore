@@ -17,7 +17,7 @@ unsigned char  coverage = spans->coverage;
 
 if ( coverage )
 {
-/* For small-spans it is faster to do it by ourselves than
+/* F small-spans it is faster to do it by ourselves than
 calling 'memset'. This is mainly due to the cost of the
 function call.
 */
@@ -42,4 +42,16 @@ default:
 }
 }
 }
+}
+
+void nothing() {
+  return;
+}
+
+int add(int a, int b) {
+  return a + b;
+}
+
+void nothinge() {
+  return;
 }
