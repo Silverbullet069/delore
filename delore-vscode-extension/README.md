@@ -76,13 +76,13 @@ You can remove `&& rm <model>.zip` to retain your archive files.
 
 ```sh
 # Devign
-$ gdown https://drive.google.com/file/d/1uhT71kvoJ87Eb4hCjPdP-Ekww8SaJ35W/view?usp=sharing && unzip devign.zip -d ./python/ai_models && rm devign.zip
+$ gdown https://drive.google.com/uc?id=1uhT71kvoJ87Eb4hCjPdP-Ekww8SaJ35W && unzip devign.zip -d ./python/ai_models && rm devign.zip
 
 # LineVul
-$ gdown https://drive.google.com/file/d/1-A8WUw-4WnaeLRNsv3sUnfUXeJLmm1RG/view?usp=sharing && unzip linevul.zip -d ./python/ai_models && rm linevul.zip
+$ gdown https://drive.google.com/uc?id=1-A8WUw-4WnaeLRNsv3sUnfUXeJLmm1RG && unzip linevul.zip -d ./python/ai_models && rm linevul.zip
 
 # LineVD
-$ gdown https://drive.google.com/file/d/1HQbCRMSixoKa_Y-nJK_bAvY9MSK2E72O/view?usp=sharing && unzip linevd.zip -d ./python/ai_models && rm linevd.zip
+$ gdown https://drive.google.com/uc?id=1HQbCRMSixoKa_Y-nJK_bAvY9MSK2E72O && unzip linevd.zip -d ./python/ai_models && rm linevd.zip
 ```
 
 [Back to ToC](#table-of-contents)
