@@ -10,7 +10,7 @@ import {
 import { EXTENSION_ID, resourceManager } from '../../constants/config';
 import { ActiveModelSetting } from '../../model/settings.model';
 import { safeJsonParse, safeJsonStringify } from '../../utils/typeSafeJson';
-import { isDetectionModelOutput } from '../../utils/misc';
+import { isDetectionModelOutput } from '../../model/state.model';
 import {
   Either,
   isLeft,
@@ -136,7 +136,8 @@ export const detectionService = (
       const settingParams: string[] = []; // PREPARE: this can be implemented in the future
 
       const paramObj: DetectionModelInput = {
-        unprocessedContent: func.unprocessedContent
+        modelName: detectionModel.name,
+        lines: func.lines.map((line) => line.unprocessedContent)
       };
       const paramJSON = safeJsonStringify(paramObj);
 
@@ -177,7 +178,7 @@ export const detectionService = (
         InMemoryRepository.getInstance().updateModelResultInOneFunc(
           'detection',
           editorFsPath,
-          func.processedContentHash,
+          func.processedContentFuncHash,
           detectionOutput
         );
 

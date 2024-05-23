@@ -70,7 +70,7 @@
             },
             {
               "name": "linevd",
-              "isActive": false
+              "isActive": true
             },
             {
               "name": "linevul",
@@ -107,7 +107,7 @@
           "default": [
             {
               "name": "linevd",
-              "isActive": false
+              "isActive": true
             },
             {
               "name": "linevul",
@@ -147,7 +147,7 @@
             },
             {
               "name": "gpt-4o",
-              "isActive": true
+              "isActive": false
             }
           ],
           "order": 2

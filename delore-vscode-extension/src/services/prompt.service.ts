@@ -158,6 +158,6 @@ export const promptGithubCopilotService = async (
     });
   }
 
-  logger.debugSuccess('GitHub Copilot response', '\n', output);
+  logger.debugInfo('GitHub Copilot response', '\n', output);
   return makeRight(output);
 };

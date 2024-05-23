@@ -21,6 +21,7 @@ import {
   mergeLocalizationModelOutputs,
   mergeRepairationModelOutputs
 } from '../services/mergeResult.service';
+import { capitalize } from '../utils/misc';
 
 type RepositoryErrorType =
   | 'EDITOR_FS_PATH_EMPTY'
@@ -254,7 +255,7 @@ export class InMemoryRepository {
 
     // extract func via hash
     const func = editorState.funcs.find(
-      (func) => func.processedContentHash === processedContentHash
+      (func) => func.processedContentFuncHash === processedContentHash
     );
 
     if (!func) {
@@ -285,6 +286,7 @@ export class InMemoryRepository {
     }
 
     // replace? impossible
+    logger.debugError('Impossible!');
     return makeLeft(resultExistedErrorTemplate(modelRole, modelOutput));
   }
 
@@ -321,6 +323,9 @@ export class InMemoryRepository {
     funcs.forEach((func) => {
       // skip
       if (func[`${modelRole}Results`]?.length === 0) {
+        logger.debugError(
+          `There are no results in ${capitalize(modelRole)} model. Check again.`
+        );
         return;
       }
 
@@ -398,7 +403,7 @@ export class InMemoryRepository {
     editorState.funcs = newFuncs.map((newFunc) => {
       const similarFunc = editorState.funcs.find(
         (oldFunc) =>
-          oldFunc.processedContentHash === newFunc.processedContentHash
+          oldFunc.processedContentFuncHash === newFunc.processedContentFuncHash
       );
 
       // new or modified funcs

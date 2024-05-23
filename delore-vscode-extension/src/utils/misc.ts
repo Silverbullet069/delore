@@ -42,10 +42,14 @@ const levenshtein = (a: string, b: string) => {
 export const areStringsSimilar = (
   a: string,
   b: string,
-  similarityThreshold = 0.8 // 80%
+  similarityThreshold = 0.7 // 70%
 ): boolean => {
   const distance = levenshtein(a, b);
   const longestLength = Math.max(a.length, b.length);
   const similarity = (longestLength - distance) / longestLength;
   return similarity >= similarityThreshold;
+};
+
+export const isOnlyWhitespace = (str: string): boolean => {
+  return !/\S/.test(str);
 };

@@ -15,7 +15,7 @@ import {
   makeRight,
   unwrapEither
 } from '../utils/either';
-import { areStringsSimilar } from '../utils/misc';
+import { areStringsSimilar, isOnlyWhitespace } from '../utils/misc';
 import { processedNoSpace } from '../utils/sanitize';
 
 export const mergeDetectionModelOutputs = (
@@ -86,7 +86,21 @@ const handleMergeLocalizationResult = (
   // not very 'functional', but easy to read
   const length = currentOutput.lines.length;
   for (let i = 0; i < length; ++i) {
+    // passed
+    if (currentOutput.lines[i].content === nextOutput.lines[i].content) {
+      continue;
+    }
+
+    // passed
     if (
+      isOnlyWhitespace(currentOutput.lines[i].content) &&
+      isOnlyWhitespace(nextOutput.lines[i].content)
+    ) {
+      continue;
+    }
+
+    if (
+      currentOutput.lines[i].content !== nextOutput.lines[i].content &&
       !areStringsSimilar(
         processedNoSpace(currentOutput.lines[i].content),
         processedNoSpace(nextOutput.lines[i].content)
@@ -163,7 +177,7 @@ const handleMergeRepairationResult = (
   currentOutput: RepairationModelOutput,
   nextOutput: RepairationModelOutput
 ): Either<MergeResultError, RepairationModelOutput> => {
-  // currentOutput is reduce() initialized value
+  // initialized value for
   if (
     currentOutput.modelName === 'merge' &&
     currentOutput.lines.length === 0 &&
@@ -174,7 +188,9 @@ const handleMergeRepairationResult = (
         ...line,
         cwe: '', // meaningless when merged
         reason: '', // meaningless when merged
-        fix: line.isVulnerable ? ` // ${line.fix} (${line.cwe})` : ' //'
+        fix: !!line.isVulnerable
+          ? ` // ${line.fix} (${line.cwe}: ${line.reason})`
+          : ' //'
       } satisfies RepairationModelLinesOutput;
     });
 
@@ -244,8 +260,8 @@ const handleMergeRepairationResult = (
       cwe: '', // meaningless when merged
       reason: '', // meaningless when merged
       isVulnerable: false, // meaningless when merged
-      fix: nextOutput.lines[i].isVulnerable
-        ? `${currentOutput.lines[i].fix} // ${nextOutput.lines[i].fix} (${nextOutput.lines[i].cwe})`
+      fix: !!nextOutput.lines[i].isVulnerable
+        ? `${currentOutput.lines[i].fix} // ${nextOutput.lines[i].fix} (${nextOutput.lines[i].cwe}: ${nextOutput.lines[i].reason})`
         : currentOutput.lines[i].fix
     } satisfies RepairationModelLinesOutput);
   }

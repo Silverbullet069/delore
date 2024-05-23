@@ -121,11 +121,16 @@ export const executePythonCommandSync = (
 
     const stdout = execFileSync(absPathToBinary, [absPathToScript, ...params], {
       cwd: absPathToCwd,
-      encoding: 'utf8'
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'] // stdin and stdout are piped, stderr is piped as well
     });
+
+    // debug
+    logger.debugSuccess(stdout);
 
     const lines = stdout.trim().split('\n');
     const numOfLines = lines.length;
+
     const lastLine = lines[numOfLines - 1];
 
     // By design, Python output consists of log and json string. The last line is the json string.

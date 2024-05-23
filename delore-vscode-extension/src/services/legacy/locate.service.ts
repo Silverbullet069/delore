@@ -15,10 +15,7 @@ import {
   LocalizationModelInput,
   LocalizationModelOutput
 } from '../../model/state.model';
-import {
-  isDetectionModelOutput,
-  isLocalizationModelOutput
-} from '../../utils/misc';
+import { isLocalizationModelOutput } from '../../model/state.model';
 import { safeJsonParse, safeJsonStringify } from '../../utils/typeSafeJson';
 import { executePythonCommandSync } from '../../utils/shell';
 import { InMemoryRepository } from '../../repositories/inMemory.repository';
@@ -150,7 +147,8 @@ export const localizationService = (
       const settingParams: string[] = []; // PREPARE: this can be implemented in the future
 
       const paramObj: LocalizationModelInput = {
-        unprocessedContent: func.unprocessedContent
+        modelName: localizationModel.name,
+        lines: func.lines.map((line) => line.unprocessedContent)
       };
       const paramJSON = safeJsonStringify(paramObj);
 
@@ -193,7 +191,7 @@ export const localizationService = (
         InMemoryRepository.getInstance().updateModelResultInOneFunc(
           'localization',
           editorFsPath,
-          func.processedContentHash,
+          func.processedContentFuncHash,
           localizationOutput
         );
 

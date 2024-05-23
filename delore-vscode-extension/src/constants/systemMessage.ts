@@ -152,8 +152,8 @@ Your response: JSON format, with the following data
   "num": number (you write the "num" attribute in <line></line> XML tag here)
   "isVulnerable": boolean (you determine the vulnerability status. If the line really contains any CWE security vulnerailities, you write "True". If the line does not contain any vulnerabilities, you write "False".)
   "cwe": string (you determine the vulnerability number found)
-  "reason": string (you write the reason why you predicted as vulnerable with that "cwe")
-  "fix": string (you rewrite a secure version of the code that whose exact functionality is preserved)
+  "reason": string (you write the name of that vulnerability)
+  "fix": string (you rewrite the line with same functionality and vulnerability-free)
 }
 NOTE: "cwe", "reason" and "fix" is an empty string if "isVulnerable" is "false".
 

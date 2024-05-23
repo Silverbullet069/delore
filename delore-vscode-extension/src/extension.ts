@@ -31,6 +31,9 @@ import {
   LLM_COMMAND_ID,
   promptGithubCopilotService
 } from './services/prompt.service';
+import { revealLineCommandHandler } from './commands/revealLine.command';
+import { onDidRenameFilesEventHandler } from './events/onDidRenameFilesEventHandler.event';
+import { syncRevealEventHandler } from './events/syncRevealEventHandler';
 
 const symbolKinds = [
   'file',
@@ -137,68 +140,13 @@ export function activate(context: vscode.ExtensionContext) {
   /* ==================================================== */
 
   // Preserve funcState and tempState when a file is relocated or renamed
-  context.subscriptions.push(
-    vscode.workspace.onDidRenameFiles((event) => {
-      event.files.forEach((file) => {
-        const oldExt = path.extname(file.oldUri.fsPath);
-        const newExt = path.extname(file.newUri.fsPath);
-
-        if (
-          SUPPORTED_LANGUAGES.includes(oldExt) &&
-          SUPPORTED_LANGUAGES.includes(newExt)
-        ) {
-          const updateEditorFsPathEither =
-            InMemoryRepository.getInstance().updateEditorFsPath(
-              file.oldUri.fsPath,
-              file.newUri.fsPath
-            );
-
-          if (isLeft(updateEditorFsPathEither)) {
-            const err = unwrapEither(updateEditorFsPathEither);
-            logger.debugError(err.type, '\n', err.msg);
-            return;
-          }
-
-          return;
-        }
-
-        // PREPARE: what if a not .c/.cpp (supported language in general) file change to .c / .cpp file
-        if (SUPPORTED_LANGUAGES.includes(newExt)) {
-          return;
-        }
-      });
-    })
-  );
+  context.subscriptions.push(onDidRenameFilesEventHandler());
 
   // Auto scroll when clicking on custom outlines
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      'delore.revealLine',
-      (editor: vscode.TextEditor, range: vscode.Range, tempFsPath?: string) => {
-        if (!editor) {
-          logger.debugError(`There is no source code editor!`);
-          return;
-        }
+  context.subscriptions.push(revealLineCommandHandler());
 
-        editor.revealRange(range, vscode.TextEditorRevealType.AtTop);
-
-        // all of this are optional
-        // also scroll if specified
-        if (tempFsPath && isFileOpenAndVisible(tempFsPath)) {
-          const tempEditorEither = getVisibleTextEditor(tempFsPath);
-          if (isLeft(tempEditorEither)) {
-            const err = unwrapEither(tempEditorEither);
-            logger.debugError(err.type, '\n', err.msg);
-            return;
-          }
-
-          const tempEditor = unwrapEither(tempEditorEither);
-          tempEditor.revealRange(range, vscode.TextEditorRevealType.AtTop);
-          return;
-        }
-      }
-    )
-  );
+  // Auto scroll temp editor when source code editor scroll and vice versa
+  // context.subscriptions.push(syncRevealEventHandler());
 
   const handleChangeEditor = async (editor?: vscode.TextEditor) => {
     if (!editor) {
@@ -213,13 +161,30 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const symbols: vscode.DocumentSymbol[] =
-      await vscode.commands.executeCommand(
+    let symbols: vscode.DocumentSymbol[] = [];
+    try {
+      symbols = await vscode.commands.executeCommand(
         'vscode.executeDocumentSymbolProvider',
         editor.document.uri
       );
+    } catch (error) {
+      logger.debugError(
+        `Retrieve symbol list for editor: ${basename(editor.document.uri.fsPath)} failed! Retry...`
+      );
+      await handleChangeEditor(editor); // retry until you got it
+      return;
+    }
 
-    // I've had enough of this, symbols can be null now
+    // if empty file
+    if (symbols.length === 0) {
+      return;
+    }
+
+    if (!symbols) {
+      await handleChangeEditor(editor); // retry until you got it
+      return;
+    }
+
     const funcsOrNulls = symbols?.map((symbol) => {
       const symbolKind = symbolKinds[symbol.kind];
 
@@ -233,6 +198,8 @@ export function activate(context: vscode.ExtensionContext) {
       const match = name.match(/[a-zA-Z_][a-zA-Z0-9_]*/);
       const nameNoArguments = match ? match[0] : null;
 
+      console.log(nameNoArguments);
+
       // logger.debugSuccess(nameNoArguments);
 
       if (!nameNoArguments) {
@@ -242,18 +209,60 @@ export function activate(context: vscode.ExtensionContext) {
 
       const unprocessedRange = symbol.range;
       let startPosition = unprocessedRange.start;
+
+      // weird behavior: if the line before the startPosition is not a blank line (no newline), the startPosition is one line after the real position
+
+      // if (
+      //   twoLineBeforeStartPosition >= 0 &&
+      //   editor.document.lineAt(twoLineBeforeStartPosition).text.length !== 0
+      // ) {
+      //   const lineBeforeStartPosition = twoLineBeforeStartPosition + 1;
+      //   startPosition = new vscode.Position(
+      //     lineBeforeStartPosition,
+      //     startPosition.character
+      //   );
+      // }
+
+      // console.log(startPosition);
+
+      let isNameFound: boolean = false;
       for (
         let line = unprocessedRange.start.line;
         line <= unprocessedRange.end.line;
         ++line
       ) {
         const textLine = editor.document.lineAt(line);
+
+        // check if line is out-of-bound
+        if (textLine.isEmptyOrWhitespace) {
+          vscode.window.showErrorMessage(
+            `Line number ${line + 1} is out of bounds!`
+          );
+
+          logger.debugError(
+            `Line number ${line} is out of bounds in editor:  ${basename(editor.document.uri.fsPath)}.`
+          );
+          return null;
+        }
+
         const textLineContent = textLine.text;
 
         if (textLineContent.includes(nameNoArguments)) {
+          isNameFound = true;
           startPosition = textLine.range.start;
           break;
         }
+      }
+
+      if (!isNameFound) {
+        vscode.window.showErrorMessage(
+          `Function's name not found! Check the syntax of the function between line ${unprocessedRange.start.line + 1} and ${unprocessedRange.end.line + 1}!`
+        );
+
+        logger.debugError(
+          `Function's name not found! Check the syntax of the function between line ${unprocessedRange.start.line + 1} and ${unprocessedRange.end.line + 1} in editor: ${basename(editor.document.uri.fsPath)}`
+        );
+        return null;
       }
 
       const processedRange = new vscode.Range(
@@ -261,11 +270,11 @@ export function activate(context: vscode.ExtensionContext) {
         unprocessedRange.end
       );
 
-      logger.debugSuccess(processedRange);
+      // logger.debugSuccess(processedRange);
 
-      const unprocessedContent = editor.document.getText(processedRange);
+      const unprocessedContentFunc = editor.document.getText(processedRange);
 
-      const processedContent = processedOneSpace(unprocessedContent);
+      const processedContent = processedOneSpace(unprocessedContentFunc);
       const processedContentHash = crypto
         .createHash('md5')
         .update(processedContent)
@@ -280,11 +289,13 @@ export function activate(context: vscode.ExtensionContext) {
         const textLine = editor.document.lineAt(i);
 
         const numOnEditor = textLine.lineNumber;
+        const unprocessedContent = textLine.text;
         const processedContent = textLine.text.trim();
         const startCharOnEditor = textLine.range.start.character;
         const endCharOnEditor = textLine.range.end.character;
         lines.push({
           numOnEditor,
+          unprocessedContent,
           processedContent,
           startCharOnEditor,
           endCharOnEditor
@@ -293,20 +304,20 @@ export function activate(context: vscode.ExtensionContext) {
 
       const func: FuncState = {
         name,
-        unprocessedContent,
-        processedContent,
-        processedContentHash,
+        unprocessedContentFunc,
+        processedContentFunc: processedContent,
+        processedContentFuncHash: processedContentHash,
         lines,
         isRunDelore: false, // by default, every new Func hasn't run through Delore yet
-        detectionResults: [],
-        localizationResults: [],
-        repairationResults: []
+        detectionResults: [], // reset
+        localizationResults: [], // reset
+        repairationResults: [] // reset
       };
 
       return func;
     });
 
-    const funcs = funcsOrNulls?.filter(
+    const funcs = funcsOrNulls.filter(
       (funcOrNull) => funcOrNull !== null
     ) as FuncState[];
 
@@ -450,28 +461,28 @@ export function activate(context: vscode.ExtensionContext) {
   /* RUN WHEN VSCODE START UP                             */
   /* ==================================================== */
 
-  // wait 1s first
-  setTimeout(async () => {
+  const MAX_RETRIES = 5;
+  const DELAY = 2000;
+  let attempts = 0;
+
+  const intervalId = setInterval(async () => {
     const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-
-    const MAX_RETRIES = 5;
-    const DELAY = 500;
-
-    for (let i = 0; i < MAX_RETRIES; ++i) {
-      try {
-        await handleChangeEditor(editor);
-        return;
-      } catch (err) {
-        logger.debugError(err);
-        await new Promise((resolve) => setTimeout(resolve, DELAY));
+    if (editor || attempts >= MAX_RETRIES) {
+      clearInterval(intervalId);
+      if (editor) {
+        try {
+          await handleChangeEditor(editor);
+        } catch (err) {
+          logger.debugError(err);
+          logger.debugError('Failed to initialize custom outline tree view!');
+        }
+      } else {
+        logger.debugError('No active editor found after maximum attempts!');
       }
+    } else {
+      attempts++;
     }
-
-    logger.debugError('Failed to initialize custom outline tree view!');
-  }, 1000);
+  }, DELAY);
 
   /* ==================================================== */
   /* TESTING                                              */

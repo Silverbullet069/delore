@@ -4,17 +4,26 @@ import * as vscode from 'vscode';
 /* Standardized Input (what TypeScript knows)             */
 /* ====================================================== */
 
+type UnprocessedContentLine = string;
+
 export type DetectionModelInput = {
-  unprocessedContent: string; // we need line data
+  // unprocessedContentFunc: string; // using '\n' to cut lines in Python is risky, change to each lines
+  modelName: string;
+  lines: UnprocessedContentLine[];
 };
 
 export type LocalizationModelInput = {
-  unprocessedContent: string; // we need line data
+  // unprocessedContentFunc: string;
+  modelName: string;
+  lines: UnprocessedContentLine[];
 };
 
 export type RepairationModelInput = {
-  unprocessedContent: string; // we need line data
-  possibleVulLines: number[];
+  // unprocessedContentFunc: string;
+  // possibleVulLines: number[];
+  modelName: string;
+  lines: UnprocessedContentLine[];
+  vulLineNums: number[];
 };
 
 /* ====================================================== */
@@ -50,9 +59,9 @@ export const isDetectionModelOutput = (
 /* ====================================================== */
 
 export type LocalizationModelLinesOutput = {
-  content: string;
   num: number;
   score: number;
+  content: string;
   isVulnerable: boolean; // since the extension didn't know about the model logic so just the score isn't enough to determine whether or not a line is vulnerable, that's Python job
 };
 
@@ -119,14 +128,15 @@ export const isRepairationModelOutput = (
         typeof line.content === 'string' &&
         'num' in line &&
         typeof line.num === 'number' &&
+        'isVulnerable' in line &&
+        (typeof line.isVulnerable === 'boolean' ||
+          typeof line.isVulnerable === 'string') && // json parse don't know to handle true and false string
         'cwe' in line &&
         typeof line.cwe === 'string' &&
         'reason' in line &&
         typeof line.reason === 'string' &&
         'fix' in line &&
-        typeof line.fix === 'string' &&
-        'isVulnerable' in line &&
-        typeof line.isVulnerable === 'boolean'
+        typeof line.fix === 'string'
     )
   );
 };
@@ -136,17 +146,18 @@ export const isRepairationModelOutput = (
 /* ====================================================== */
 
 export type LineState = {
-  numOnEditor: number;
+  unprocessedContent: string;
   processedContent: string;
+  numOnEditor: number;
   startCharOnEditor: number;
   endCharOnEditor: number;
 };
 
 export type FuncState = {
   name: string;
-  unprocessedContent: string;
-  processedContent: string;
-  processedContentHash: string; // the ID
+  unprocessedContentFunc: string;
+  processedContentFunc: string;
+  processedContentFuncHash: string; // the ID
   isRunDelore: boolean;
 
   lines: LineState[];

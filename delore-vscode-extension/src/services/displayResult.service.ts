@@ -150,7 +150,7 @@ export const displayResultService = async (
     // extract last line that get written to calculate the number of new lines prepending before inserting
     let lastFuncLinePosition = new vscode.Position(0, 0);
     for (const func of funcs) {
-      if (func.lines.length === 0 || !func.unprocessedContent) {
+      if (func.lines.length === 0 || !func.unprocessedContentFunc) {
         return makeLeft({
           type: 'FUNC_IS_EMPTY',
           msg: `Check again your function: ${func.name}\n${new Error().stack}`
@@ -178,7 +178,7 @@ export const displayResultService = async (
       await editor.edit((editBuilder) => {
         editBuilder.insert(
           insertPosition,
-          prependNewLines + func.unprocessedContent
+          prependNewLines + func.unprocessedContentFunc
         );
       });
 
@@ -261,7 +261,10 @@ export const displayResultService = async (
     ) {
       return makeLeft({
         type: 'VUL_AND_REPAIR_ARRAY_NOT_EQUAL_LENGTH',
-        msg: `Check again your list of vul lines: ${vulOnEditorLineNumsAndContents} and list of repair lines: ${repairOnEditorLineNumsAndFixes}`
+        msg: `List of vul lines:
+        ${vulOnEditorLineNumsAndContents.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)} 
+        List of repair lines:
+        ${repairOnEditorLineNumsAndFixes.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)} `
       });
     }
 
@@ -273,7 +276,10 @@ export const displayResultService = async (
       ) {
         return makeLeft({
           type: 'VUL_AND_REPAIR_ARRAY_NOT_IDENTICAL_NUM',
-          msg: `Check again your list of vul lines: ${vulOnEditorLineNumsAndContents} and list of repair lines: ${repairOnEditorLineNumsAndFixes}`
+          msg: `List of vul lines:
+            ${vulOnEditorLineNumsAndContents.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)} 
+          List of repair lines:
+            ${repairOnEditorLineNumsAndFixes.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)}`
         });
       }
     }
@@ -305,6 +311,7 @@ export const displayResultService = async (
         new vscode.Range(oldEndLinePosition, newEndLinePostion)
       );
     }
+    await document.save(); // save again
 
     editor.setDecorations(repairDecoration, repairLineRanges);
 

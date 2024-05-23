@@ -58,6 +58,7 @@ export const activateDeloreCommand = (
           async (progress, token) => {
             token.onCancellationRequested(() => {
               logger.notifyInfo('User cancelled Detection service!');
+              isModelRun = false;
             });
 
             // detectionService(extensionPath, editorFsPath, funcs);
@@ -70,6 +71,7 @@ export const activateDeloreCommand = (
             if (isLeft(detectionServiceEither)) {
               const err = unwrapEither(detectionServiceEither);
               logger.debugError(err.type, '\n', err.msg);
+              isModelRun = false;
             }
 
             const success = unwrapEither(detectionServiceEither);
@@ -99,6 +101,7 @@ export const activateDeloreCommand = (
           async (progress, token) => {
             token.onCancellationRequested(() => {
               logger.notifyInfo('User cancelled Localization service!');
+              isModelRun = false;
             });
 
             // NOTE: this service has a little different logic, since it uses detection result
@@ -111,6 +114,7 @@ export const activateDeloreCommand = (
             if (isLeft(localizationServiceEither)) {
               const err = unwrapEither(localizationServiceEither);
               logger.debugError(err.type, '\n', err.msg);
+              isModelRun = false;
               return;
             }
 
@@ -142,6 +146,7 @@ export const activateDeloreCommand = (
           async (progress, token) => {
             token.onCancellationRequested(() => {
               logger.notifyInfo('User cancelled Repairation service!');
+              isModelRun = false;
             });
 
             // NOTE: for now,  repairation use VSCode's languageModels API
@@ -154,7 +159,13 @@ export const activateDeloreCommand = (
             if (isLeft(repairationServiceEither)) {
               const err = unwrapEither(repairationServiceEither);
               logger.debugError(err.type, '\n', err.msg);
+              isModelRun = false;
               return;
+            }
+
+            const success = unwrapEither(repairationServiceEither);
+            if (success === 'RUN') {
+              isModelRun = true;
             }
           }
         );

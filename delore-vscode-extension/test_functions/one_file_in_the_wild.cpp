@@ -29,7 +29,7 @@ int main () {
  
 enum { BUFFER_SIZE = 10 };
  
-int main() {
+int main1() {
     char buffer[BUFFER_SIZE];
     int check = 0;
  
@@ -195,7 +195,7 @@ int ProcessImage(char* filename){
 
 #include <stdio.h>
 
-int main(int argc, char *argv[])
+int main2(int argc, char *argv[])
 {
 	rc = SQLConnect(Example.ConHandle, argv[0], SQL_NTS,
 	(SQLCHAR *) "", SQL_NTS, (SQLCHAR *) "", SQL_NTS);

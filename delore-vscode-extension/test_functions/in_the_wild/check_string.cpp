@@ -6,14 +6,11 @@
 #include <stdlib.h>
  
 enum { BUFFER_SIZE = 10 };
- 
-int main() {
+
+int main1() {
     char buffer[BUFFER_SIZE];
     int check = 0;
- 
     sprintf(buffer, "%s", "This string does not meant anything ...");
- 
     printf external link("check: %d", check);
- 
     return EXIT_SUCCESS;
 }

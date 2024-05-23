@@ -3,6 +3,7 @@ import * as logger from '../utils/logger';
 
 import {
   EXTENSION_ID,
+  ModelName,
   ModelRole,
   modelRoles,
   resourceManager
@@ -41,6 +42,7 @@ import {
   promptGithubCopilotService
 } from './prompt.service';
 import { capitalize } from '../utils/misc';
+import { parseJsonOrDefault } from '../utils/parseJsonOrDefault';
 
 /* ====================================================== */
 /* Model Service                                          */
@@ -65,6 +67,7 @@ export type ModelServiceError = {
 export type ModelServiceSuccessType = 'NOT_RUN' | 'RUN';
 
 const handleModelInput = (
+  modelName: ModelName,
   modelRole: ModelRole,
   func: FuncState
 ): Either<
@@ -74,16 +77,19 @@ const handleModelInput = (
   switch (modelRole) {
     case 'detection':
       return makeRight({
-        unprocessedContent: func.unprocessedContent
+        modelName,
+        lines: func.lines.map((line) => line.unprocessedContent)
       });
     case 'localization':
       return makeRight({
-        unprocessedContent: func.unprocessedContent
+        modelName,
+        lines: func.lines.map((line) => line.unprocessedContent)
       });
     case 'repairation':
       return makeRight({
-        unprocessedContent: func.unprocessedContent,
-        possibleVulLines: func.mergeLocalizationResult?.lines
+        modelName,
+        lines: func.lines.map((line) => line.unprocessedContent),
+        vulLineNums: func.mergeLocalizationResult?.lines
           .filter((line) => line.isVulnerable)
           .map((line) => line.num)
       });
@@ -129,7 +135,7 @@ export const modelService = async (
   /* ==================================================== */
   /* Extract Funcs                                        */
   /* ==================================================== */
-
+  makeRight;
   const funcsEither =
     InMemoryRepository.getInstance().getFuncsInOneEditor(editorFsPath);
 
@@ -188,11 +194,8 @@ export const modelService = async (
 
   // debug
   logger.debugSuccess(
-    `
-    File: ${basename(module.filename)}
-    Function: ${modelService.name}
-    Active Models:`,
-    activeModels
+    `List active ${modelRole} models: `,
+    activeModels.map((model) => `${model.name} `)
   );
 
   // relocate into deep here to prevent display notification when model not running since content func not changed
@@ -211,7 +214,7 @@ export const modelService = async (
       // iterate models (detection, localization, repairation)
       // using for ... of to achieve outer async/await
 
-      for (const model of activeModels) {
+      for (const [index, model] of activeModels.entries()) {
         // ! Ad-hoc integration with VSCode's Language Model API and OpenAI Node API Library
         // VSCode's Language Model API integrate with GitHub Copilot
         if (
@@ -224,12 +227,19 @@ export const modelService = async (
           for (const func of funcs) {
             if (!func.mergeLocalizationResult) {
               logger.debugError(
-                `There is no merge localization result in func: ${func.name}`
+                `Skipped! There is no merge localization result in func: ${func.name}`
               );
-              return; // nuke the func
+              continue; // do not use 'return'
             }
 
-            const funcWithDelimiter = `<function>${func.unprocessedContent}</function>`;
+            if (func.mergeRepairationResult) {
+              logger.debugSuccess(
+                `Skipped! There is a merge repairation result in func :${func.name} already!`
+              );
+              continue;
+            }
+
+            const funcWithDelimiter = `<function>${func.unprocessedContentFunc}</function>`;
 
             logger.debugSuccess('func with delim: ', '\n', funcWithDelimiter);
 
@@ -251,7 +261,7 @@ export const modelService = async (
               message: `${model.name} - ${func.name}`
             });
 
-            // Run model
+            // set flag
             isModelRun = true;
 
             const outputEither =
@@ -271,40 +281,62 @@ export const modelService = async (
               logger.debugError(
                 `Error when prompted in function: ${func.name}\n${err.type}\n${err.msg}` // no stack
               );
-              return; // nuke the func
+              continue;
             }
 
             const modelLinesOutputJSON = unwrapEither(outputEither);
-            const modelLinesOutput = await safeJsonParse(modelLinesOutputJSON);
+            const defaultOutput = func.mergeLocalizationResult.lines
+              .filter((line) => line.isVulnerable)
+              .map(
+                (line) =>
+                  ({
+                    content: line.content,
+                    num: line.num,
+                    isVulnerable: line.isVulnerable,
+                    cwe: '',
+                    reason: '',
+                    fix: ''
+                  }) satisfies RepairationModelLinesOutput
+              );
+
+            const modelLinesOutput = await parseJsonOrDefault(
+              modelLinesOutputJSON,
+              defaultOutput
+            );
+
             const modelOutput = {
               modelName: model.name,
               lines: modelLinesOutput
             };
 
-            if (!isRepairationModelOutput(modelOutput)) {
-              logger.debugError(
-                `Model ${model.name} not give repairation standardized output!${new Error().stack}`
-              );
-              return;
-            }
+            logger.debugSuccess(modelOutput);
+
+            // TODO: fix this later
+            // if (!isRepairationModelOutput(modelOutput)) {
+            //   logger.debugError(
+            //     `Model ${model.name} not give repairation standardized output!${new Error().stack}
+            //     Model name: ${model.name}
+            //     Model lines: ${modelLinesOutputJSON}`
+            //   );
+            //   return;
+            // }
 
             const updateEither =
               InMemoryRepository.getInstance().updateModelResultInOneFunc(
-                modelRole,
+                'repairation',
                 editorFsPath,
-                func.processedContentHash,
-                modelOutput
+                func.processedContentFuncHash,
+                modelOutput as RepairationModelOutput
               );
 
             if (isLeft(updateEither)) {
               const err = unwrapEither(updateEither);
               logger.debugError(err.type, '\n', err.msg);
-              return; // nuke the func
+              continue;
             }
           }
 
-          // skip handle python model below
-          continue; // do not use 'return'
+          continue; // next model
         }
 
         /* ============================================== */
@@ -315,7 +347,7 @@ export const modelService = async (
         if (isLeft(pathEither)) {
           const err = unwrapEither(pathEither);
           logger.debugError(err.type, '\n', err.msg);
-          return; // nuke the model
+          continue; // next model
         }
         const absPathToBinary = unwrapEither(pathEither);
 
@@ -325,7 +357,7 @@ export const modelService = async (
           logger.debugError(
             `Model role: ${modelRole}\nModel ${model.name} don't have relPathToScript. Check constants/config.ts!`
           );
-          return; // nuke the model
+          continue; // next model
         }
 
         const absPathToScript = extensionPath + model.relPathToScript;
@@ -336,7 +368,7 @@ export const modelService = async (
           logger.debugError(
             `Model role: ${modelRole}\nModel ${model.name} don't have relPathToCWD. Check constants/config.ts!`
           );
-          return; // nuke the model
+          continue; // next model
         }
 
         const absPathToCwd = extensionPath + model.relPathToCWD;
@@ -345,16 +377,14 @@ export const modelService = async (
 
         // iterate funcs
         for (const func of funcs) {
-          // only the start of chain - detection needed this
+          //
           if (modelRole === 'detection' && func.isRunDelore) {
             logger.debugSuccess(
               `Function: ${func.name} has run through Delore before!`
             );
-            return;
-          }
 
-          // PREPARE: this should be Repository's responsibility
-          func.isRunDelore = true;
+            continue; // next func
+          }
 
           // skip func if it had result before with the same model
           if (
@@ -365,7 +395,7 @@ export const modelService = async (
             logger.debugSuccess(
               `In ${modelRole} service, function has used model ${model.name}.`
             );
-            return;
+            continue; // next func
           }
 
           // skip func if locate, repair but func not run through detection service
@@ -374,7 +404,7 @@ export const modelService = async (
             (func.detectionResults.length === 0 || !func.mergeDetectionResult)
           ) {
             logger.debugSuccess(`Haven't run through detection service.`);
-            return;
+            continue; // next func
           }
 
           // skip func if locate, repair but func run through detection service but predicted as non-vul
@@ -386,7 +416,7 @@ export const modelService = async (
             logger.debugSuccess(
               `Detection service predicted this function as non-vul.`
             );
-            return;
+            continue; // next func
           }
 
           // skip func if repair but func not run through localization service
@@ -396,7 +426,7 @@ export const modelService = async (
               !func.mergeLocalizationResult)
           ) {
             logger.debugSuccess(`Haven't run through localization service.`);
-            return;
+            continue; // next func
           }
 
           // skip func if repair, run through localization service but not a single line is vul?
@@ -407,15 +437,20 @@ export const modelService = async (
           /* Input                                          */
           /* ============================================== */
 
+          // only update if this is the last model
+          if (index === activeModels.length - 1) {
+            func.isRunDelore = true;
+          }
+
           const defaultParams = model.args; // this can be empty
           const settingParams: string[] = []; // PREPARE: this can be implemented in the future
 
-          const paramObjEither = handleModelInput(modelRole, func);
+          const paramObjEither = handleModelInput(model.name, modelRole, func);
 
           if (isLeft(paramObjEither)) {
             const err = unwrapEither(paramObjEither);
             logger.debugError(err);
-            return; // nuke the func
+            continue; // next func
           }
 
           const paramObj = unwrapEither(paramObjEither);
@@ -430,7 +465,7 @@ export const modelService = async (
 
           // Show notification on VSCode
           progress.report({
-            message: `${capitalize(model.name)} - Function: ${func.name}`
+            message: `${capitalize(model.name)} - ${func.name}`
           });
 
           // Set flag
@@ -450,11 +485,14 @@ export const modelService = async (
           if (isLeft(modelOutputEither)) {
             const err = unwrapEither(modelOutputEither);
             logger.debugError(err.type, '\n', err.msg);
-            return; // nuke the func
+            continue; // next func
           }
 
           const modelOutputJSON = unwrapEither(modelOutputEither);
           const modelOutput = await safeJsonParse(modelOutputJSON);
+
+          // debug
+          modelRole === 'localization' && logger.debugSuccess(modelOutput);
 
           /* ================================================ */
           /* Runtime Check                                    */
@@ -471,7 +509,7 @@ export const modelService = async (
             logger.debugError(
               `Output JSON: ${modelOutputJSON} does not follows the ${modelRole} standard!`
             );
-            return; // nuke the func
+            continue; // next func
           }
 
           if (
@@ -482,14 +520,14 @@ export const modelService = async (
             logger.debugError(
               `Output JSON: ${modelOutputJSON} return different lines length compare to the length in editor!`
             );
-            return; // nuke the func
+            continue; // next func
           }
 
           const updateEither =
             InMemoryRepository.getInstance().updateModelResultInOneFunc(
               modelRole,
               editorFsPath,
-              func.processedContentHash,
+              func.processedContentFuncHash,
               modelOutput as
                 | DetectionModelOutput
                 | LocalizationModelOutput
@@ -499,7 +537,7 @@ export const modelService = async (
           if (isLeft(updateEither)) {
             const err = unwrapEither(updateEither);
             logger.debugError(err.type, '\n', err.msg);
-            return; // nuke the func
+            continue; // next func
           }
 
           // debug

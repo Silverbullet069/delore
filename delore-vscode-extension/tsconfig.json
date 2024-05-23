@@ -23,5 +23,5 @@
     // "esModuleInterop": true,
     // "resolveJsonModule": true
   },
-  "exclude": ["src-legacy"]
+  "exclude": ["src-legacy", "test_functions"]
 }

@@ -38,7 +38,7 @@ By integrating DeLoRe into the development process, developers can catch and fix
 
 <u>_Commands_</u>: **`Shift`** + **`Alt`** + **`D`**
 
-...insert gif image here
+![demo](./asset/delore.gif)
 
 [Back to ToC](#table-of-contents)
 

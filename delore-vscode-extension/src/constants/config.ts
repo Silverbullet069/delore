@@ -160,13 +160,13 @@ const defaultModels: MultiRoleModel[] = [
     roles: [
       {
         role: 'detection',
-        relPathToScript: '', // TODO: add this
-        args: []
+        relPathToScript: '/python/ai_models/linevd/main.py',
+        args: ['--function_level', '--input_json']
       },
       {
         role: 'localization',
-        relPathToScript: '', // TODO: add this
-        args: []
+        relPathToScript: '/python/ai_models/linevd/main.py',
+        args: ['--line_level', '--input_json']
       }
     ]
   } satisfies MultiRoleModel,
