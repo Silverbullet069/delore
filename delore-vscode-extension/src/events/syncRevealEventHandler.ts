@@ -40,6 +40,11 @@ export const syncRevealEventHandler = () => {
     }
 
     if (editors.includes(editor) && editors.includes(tempEditor)) {
+      logger.debugSuccess(
+        `Editor: ${extname(editorFsPath)} visible ranges: `,
+        '\n',
+        event.visibleRanges
+      );
     }
     return;
   });
