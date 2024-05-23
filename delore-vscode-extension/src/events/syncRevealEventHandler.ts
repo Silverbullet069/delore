@@ -1,16 +1,25 @@
 import * as vscode from 'vscode';
 import * as logger from '../utils/logger';
 import { InMemoryRepository } from '../repositories/inMemory.repository';
-import { isLeft, unwrapEither } from '../utils/either';
+import { isLeft, isRight, unwrapEither } from '../utils/either';
 import { basename, extname } from 'path';
 import { SUPPORTED_LANGUAGES } from '../constants/config';
+import {
+  getVisibleTextEditor,
+  isFileOpenAndVisible
+} from '../views/apiWrapper';
 
-export const syncRevealEventHandler = () => {
+export const syncRevealEventHandler = (context: vscode.ExtensionContext) => {
   return vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
     const editor = event.textEditor;
     const editorFsPath = editor.document.uri.fsPath;
+    const editorExt = extname(editorFsPath);
 
-    if (!SUPPORTED_LANGUAGES.includes(extname(editorFsPath))) {
+    logger.debugSuccess(`Ext: ${editorExt}`);
+    logger.debugSuccess(`Visible Ranges: `, ...event.visibleRanges);
+
+    if (!SUPPORTED_LANGUAGES.includes(editorExt)) {
+      logger.debugInfo(`Editor ${basename(editorFsPath)} not supported!`);
       return;
     }
 
@@ -23,28 +32,83 @@ export const syncRevealEventHandler = () => {
       logger.debugInfo(err.type, '\n', err.msg);
       return;
     }
+
+    // TODO: check unwrapEither behavior, it ignored null value
     const tempState = unwrapEither(tempEither);
-    const tempFsPath = tempState.fsPath;
-
-    const editors = vscode.window.visibleTextEditors;
-    const tempEditor = editors.find(
-      (editor) => editor.document.uri.fsPath === tempFsPath
-    );
-
-    // temp editor not visible
-    if (!tempEditor) {
+    if (tempState === null) {
       logger.debugInfo(
         `Editor: ${basename(editorFsPath)} have not run Delore before! Can not sync reveal!`
       );
       return;
     }
 
-    if (editors.includes(editor) && editors.includes(tempEditor)) {
-      logger.debugSuccess(
-        `Editor: ${extname(editorFsPath)} visible ranges: `,
-        '\n',
-        event.visibleRanges
+    const tempFsPath = tempState.fsPath;
+    const tempEditor = vscode.window.visibleTextEditors.find(
+      (editor) => editor.document.uri.fsPath === tempFsPath
+    );
+
+    if (!tempEditor) {
+      // temp editor not visible
+      logger.debugInfo(
+        `Editor: ${basename(editorFsPath)} temp file ${basename(tempFsPath)} is not visible! Make it visible first!`
       );
+      return;
+    }
+
+    const funcsEither =
+      InMemoryRepository.getInstance().getFuncsInOneEditor(editorFsPath);
+
+    if (isLeft(funcsEither)) {
+      const err = unwrapEither(funcsEither);
+      logger.debugError(err.type, '\n', err.msg);
+      return; // nuke
+    }
+
+    const funcs = unwrapEither(funcsEither);
+    const startVisibleLine = event.visibleRanges[0].start.line;
+
+    for (const func of funcs) {
+      const startLine = func.lines[0].numOnEditor;
+      const endLine = func.lines[func.lines.length - 1].numOnEditor;
+
+      // skip all funcs that passed through endLine
+      if (startVisibleLine >= endLine) {
+        logger.debugSuccess('A Start line: ', startLine);
+        logger.debugSuccess('A Start visible line: ', startVisibleLine);
+        logger.debugSuccess('A End line: ', endLine);
+        continue;
+      }
+
+      if (
+        startVisibleLine >= startLine &&
+        startVisibleLine <= endLine
+        // func.name !== context.globalState.get('last-func-navigation') // avoid scroll to func 2 but still at func 1
+      ) {
+        logger.debugSuccess('B Start line: ', startLine);
+        logger.debugSuccess('B Start visible line: ', startVisibleLine);
+        logger.debugSuccess('B End line: ', endLine);
+
+        const processedStartVisiblePosition = new vscode.Position(
+          // based on observation
+          Math.min(
+            event.visibleRanges[0].start.line + 5,
+            editor.document.lineCount - 1
+          ),
+          event.visibleRanges[0].start.character
+        );
+
+        const processedVisibleRange = new vscode.Range(
+          processedStartVisiblePosition,
+          event.visibleRanges[0].end
+        );
+
+        tempEditor.revealRange(
+          processedVisibleRange,
+          vscode.TextEditorRevealType.Default
+        );
+        // context.globalState.update('last-func-navigation', func.name);
+        break;
+      }
     }
     return;
   });

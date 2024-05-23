@@ -146,7 +146,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(revealLineCommandHandler());
 
   // Auto scroll temp editor when source code editor scroll and vice versa
-  // context.subscriptions.push(syncRevealEventHandler());
+  context.subscriptions.push(syncRevealEventHandler(context));
 
   const handleChangeEditor = async (editor?: vscode.TextEditor) => {
     if (!editor) {
@@ -197,8 +197,6 @@ export function activate(context: vscode.ExtensionContext) {
       const name = symbol.name;
       const match = name.match(/[a-zA-Z_][a-zA-Z0-9_]*/);
       const nameNoArguments = match ? match[0] : null;
-
-      console.log(nameNoArguments);
 
       // logger.debugSuccess(nameNoArguments);
 

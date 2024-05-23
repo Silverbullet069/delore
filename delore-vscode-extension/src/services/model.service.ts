@@ -202,7 +202,7 @@ export const modelService = async (
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: `${capitalize(modelRole)} model`,
+      title: `${capitalize(modelRole)}`,
       cancellable: true
     },
 
@@ -258,7 +258,7 @@ export const modelService = async (
             const userMsg = funcWithDelimiter + '\n' + linesWithDelimiter;
 
             progress.report({
-              message: `${model.name} - ${func.name}`
+              message: `${model.name} --- ${func.name}`
             });
 
             // set flag

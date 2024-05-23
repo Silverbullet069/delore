@@ -7,8 +7,5 @@ node_modules
 
 python/ai_models/*
 python/virtual_envs/*
-!python/ai_models/linevd/main.py
-!python/ai_models/linevul/linevul/linevul_model.py
-!python/ai_models/devign/detect.py
 temp
 env
