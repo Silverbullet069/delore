@@ -1,190 +1,228 @@
 import * as vscode from 'vscode';
 import * as logger from '../utils/logger';
 
-import { InMemoryRepository } from '../repositories/inMemory.repository';
 import { isLeft, unwrapEither } from '../utils/either';
 
 import { OutlineTreeDataProvider } from '../views/customTreeDataProvider';
 import { displayResultService } from '../services/displayResult.service';
-import { modelService } from '../services/model.service';
-import { SUPPORTED_LANGUAGES } from '../constants/config';
+import { runModelService } from '../services/runModel.service';
+import { EXTENSION_ID, SUPPORTED_LANGUAGES } from '../constants/config';
 import path from 'path';
+import { ServiceHandler } from '../ServiceHandler';
 
-export const activateDeloreCommand = (
+export const activateDeloreCommandHandler = (
   extensionPath: string,
   outlineTreeDataProvider: OutlineTreeDataProvider
-) => {
-  // for registerTextEditorCommand()
-  return async (editor: vscode.TextEditor): Promise<void> => {
-    let isModelRun = false;
-
-    // actually no need to check, but just in case not use registerTextEditorCommand() anymore
-    if (!editor) {
-      logger.debugInfo(`Delore not supported empty editor!`);
-      return;
-    }
-
-    if (
-      !SUPPORTED_LANGUAGES.includes(path.extname(editor.document.uri.fsPath))
-    ) {
-      logger.debugInfo(`Delore not supported this file extension!`);
-      return;
-    }
-
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Window,
-        title: 'Running DeLoRe'
-        // only Notification can be cancelled
-      },
-      async (progress, token) => {
-        token.onCancellationRequested(() => {
-          logger.notifyInfo('User cancelled DeLoRe Extension!');
-        });
-
-        /* ================================================== */
-        /* Detection                                          */
-        /* ================================================== */
-
-        progress.report({ message: 'Detection...' });
-
-        await vscode.window.withProgress(
-          {
-            location: {
-              viewId: 'detectionModelView'
-            },
-            title: 'Running Detection...'
-          },
-          async (progress, token) => {
-            token.onCancellationRequested(() => {
-              logger.notifyInfo('User cancelled Detection service!');
-              isModelRun = false;
-            });
-
-            // detectionService(extensionPath, editorFsPath, funcs);
-            const detectionServiceEither = await modelService(
-              extensionPath,
-              'detection',
-              editor
-            );
-
-            if (isLeft(detectionServiceEither)) {
-              const err = unwrapEither(detectionServiceEither);
-              logger.debugError(err.type, '\n', err.msg);
-              isModelRun = false;
-            }
-
-            const success = unwrapEither(detectionServiceEither);
-            if (success === 'RUN') {
-              isModelRun = true;
-            }
-          }
-        );
-
-        if (!isModelRun) {
-          return;
-        }
-
-        /* ================================================== */
-        /* Localization                                       */
-        /* ================================================== */
-
-        progress.report({ message: 'Localization...' });
-
-        await vscode.window.withProgress(
-          {
-            location: {
-              viewId: 'localizationModelView'
-            },
-            title: 'Running Localization...'
-          },
-          async (progress, token) => {
-            token.onCancellationRequested(() => {
-              logger.notifyInfo('User cancelled Localization service!');
-              isModelRun = false;
-            });
-
-            // NOTE: this service has a little different logic, since it uses detection result
-            const localizationServiceEither = await modelService(
-              extensionPath,
-              'localization',
-              editor
-            );
-
-            if (isLeft(localizationServiceEither)) {
-              const err = unwrapEither(localizationServiceEither);
-              logger.debugError(err.type, '\n', err.msg);
-              isModelRun = false;
-              return;
-            }
-
-            const success = unwrapEither(localizationServiceEither);
-
-            if (success === 'RUN') {
-              isModelRun = true;
-            }
-          }
-        );
-
-        if (!isModelRun) {
-          return;
-        }
-
-        /* ============================================== */
-        /* Repairation                                    */
-        /* ============================================== */
-
-        progress.report({ message: 'Repairation...' });
-
-        await vscode.window.withProgress(
-          {
-            location: {
-              viewId: 'repairationModelView'
-            },
-            title: 'Running Localization...'
-          },
-          async (progress, token) => {
-            token.onCancellationRequested(() => {
-              logger.notifyInfo('User cancelled Repairation service!');
-              isModelRun = false;
-            });
-
-            // NOTE: for now,  repairation use VSCode's languageModels API
-            const repairationServiceEither = await modelService(
-              extensionPath,
-              'repairation',
-              editor
-            );
-
-            if (isLeft(repairationServiceEither)) {
-              const err = unwrapEither(repairationServiceEither);
-              logger.debugError(err.type, '\n', err.msg);
-              isModelRun = false;
-              return;
-            }
-
-            const success = unwrapEither(repairationServiceEither);
-            if (success === 'RUN') {
-              isModelRun = true;
-            }
-          }
-        );
+): vscode.Disposable => {
+  //
+  return vscode.commands.registerTextEditorCommand(
+    `${EXTENSION_ID}.activateDelore`,
+    async (editor: vscode.TextEditor): Promise<void> => {
+      // actually no need to check, but just in case not use registerTextEditorCommand() anymore
+      if (!editor) {
+        logger.debugInfo(`Delore not supported empty editor!`);
+        return;
       }
-    );
 
-    // only called when all 3 model has been run through
-    const displayResultServiceEither = await displayResultService(
-      extensionPath,
-      editor
-    );
+      if (
+        !SUPPORTED_LANGUAGES.includes(path.extname(editor.document.uri.fsPath))
+      ) {
+        logger.debugInfo(`Delore not supported this file extension!`);
+        return;
+      }
 
-    // handle error
-    if (isLeft(displayResultServiceEither)) {
-      const err = unwrapEither(displayResultServiceEither);
-      logger.debugError(err.type, '\n', err.msg);
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: 'Running DeLoRe'
+          // only Notification can be cancelled
+        },
+        async (statusBarProgress, statusBarToken) => {
+          // idk if this is needed?
+          statusBarToken.onCancellationRequested(() => {
+            logger.notifyInfo('User cancelled DeLoRe Extension!');
+            return;
+          });
+
+          let isModelRun = false;
+
+          /* ============================================ */
+
+          // Detection
+          statusBarProgress.report({ message: 'Detection...' });
+
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: 'Detection',
+              cancellable: true // Notification can be cancelled
+            },
+            async (detectionProgress, detectionToken) => {
+              // start view progress
+              await vscode.window.withProgress(
+                {
+                  location: {
+                    viewId: 'detectionModelView'
+                  },
+                  title: 'Detection Model View Progress',
+                  cancellable: true
+                },
+                async (viewProgress, viewToken) => {
+                  viewProgress.report({ message: 'Running...' });
+
+                  const detectionServiceEither =
+                    await ServiceHandler.instance.runModelServiceWrapper(
+                      extensionPath,
+                      'detection',
+                      editor,
+                      detectionProgress,
+                      detectionToken
+                    );
+
+                  if (isLeft(detectionServiceEither)) {
+                    const err = unwrapEither(detectionServiceEither);
+                    logger.debugError(err.type, '\n', err.msg);
+                    isModelRun = false;
+                    return;
+                  }
+
+                  isModelRun = unwrapEither(detectionServiceEither);
+                  return;
+                }
+              ); // end of view progress
+            }
+          ); // end of notification progress
+
+          // stop from going further
+          if (!isModelRun) {
+            return;
+          }
+
+          /* ================================================== */
+          /* Localization                                       */
+          /* ================================================== */
+
+          statusBarProgress.report({ message: 'Localization...' });
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: 'Localization',
+              cancellable: true
+            },
+            async (localizationProgress, localizationToken) => {
+              localizationToken.onCancellationRequested(() => {
+                logger.notifyInfo('User cancelled Localization service!');
+                isModelRun = false;
+                return;
+              });
+
+              await vscode.window.withProgress(
+                {
+                  location: {
+                    viewId: 'localizationModelView'
+                  },
+                  title: 'Localization Model View Progress',
+                  cancellable: true
+                },
+                async (viewProgress, viewToken) => {
+                  viewProgress.report({ message: 'Running...' });
+
+                  // NOTE: this service has a little different logic, since it uses detection result
+                  const localizationServiceEither =
+                    await ServiceHandler.instance.runModelServiceWrapper(
+                      extensionPath,
+                      'localization',
+                      editor,
+                      localizationProgress,
+                      localizationToken
+                    );
+
+                  if (isLeft(localizationServiceEither)) {
+                    const err = unwrapEither(localizationServiceEither);
+                    logger.debugError(err.type, '\n', err.msg);
+                    isModelRun = false;
+                    return;
+                  }
+
+                  isModelRun = unwrapEither(localizationServiceEither);
+                  return;
+                }
+              );
+            }
+          );
+
+          // stop from going further
+          if (!isModelRun) {
+            return;
+          }
+
+          /* ============================================== */
+          /* Repairation                                    */
+          /* ============================================== */
+
+          statusBarProgress.report({ message: 'Repairation...' });
+
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: 'Repairation',
+              cancellable: true
+            },
+            async (repairationProgress, repairationToken) => {
+              await vscode.window.withProgress(
+                {
+                  location: {
+                    viewId: 'repairationModelView'
+                  },
+                  title: 'Repairation Model View Progress',
+                  cancellable: true
+                },
+                async (viewProgress, viewToken) => {
+                  viewProgress.report({ message: 'Running...' });
+
+                  // NOTE: for now, repairation use VSCode's languageModels API
+                  const repairationServiceEither =
+                    await ServiceHandler.instance.runModelServiceWrapper(
+                      extensionPath,
+                      'repairation',
+                      editor,
+                      repairationProgress,
+                      repairationToken
+                    );
+
+                  if (isLeft(repairationServiceEither)) {
+                    const err = unwrapEither(repairationServiceEither);
+                    logger.debugError(err.type, '\n', err.msg);
+                    isModelRun = false;
+                    return;
+                  }
+
+                  isModelRun = unwrapEither(repairationServiceEither);
+                  return;
+                }
+              );
+            }
+          );
+        }
+      );
+
+      // NOTE: you can still check isModelRun here if you have other models in the future
+
+      // only called when all 3 model has been run through
+      // TODO: might not the best UI decision, user wants to see results asap
+      const displayResultServiceEither = await displayResultService(
+        extensionPath,
+        editor
+      );
+
+      // handle error
+      if (isLeft(displayResultServiceEither)) {
+        const err = unwrapEither(displayResultServiceEither);
+        logger.debugError(err.type, '\n', err.msg);
+      }
+
+      // update custom outline
+      outlineTreeDataProvider.refresh();
     }
-
-    // update custom outline
-    outlineTreeDataProvider.refresh();
-  };
+  );
 };

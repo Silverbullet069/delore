@@ -9,7 +9,7 @@ import {
   LocalizationModelOutput,
   RepairationModelLinesOutput,
   TempState
-} from '../model/state.model';
+} from '../type/state.type';
 import {
   Either,
   isLeft,
@@ -255,34 +255,34 @@ export const displayResultService = async (
       repairOnEditorLineNumsAndFixes
     );
 
-    if (
-      repairOnEditorLineNumsAndFixes.length !==
-      vulOnEditorLineNumsAndContents.length
-    ) {
-      return makeLeft({
-        type: 'VUL_AND_REPAIR_ARRAY_NOT_EQUAL_LENGTH',
-        msg: `List of vul lines:
-        ${vulOnEditorLineNumsAndContents.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)} 
-        List of repair lines:
-        ${repairOnEditorLineNumsAndFixes.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)} `
-      });
-    }
+    // if (
+    //   repairOnEditorLineNumsAndFixes.length !==
+    //   vulOnEditorLineNumsAndContents.length
+    // ) {
+    //   return makeLeft({
+    //     type: 'VUL_AND_REPAIR_ARRAY_NOT_EQUAL_LENGTH',
+    //     msg: `List of vul lines:
+    //     ${vulOnEditorLineNumsAndContents.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)}
+    //     List of repair lines:
+    //     ${repairOnEditorLineNumsAndFixes.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)} `
+    //   });
+    // }
 
-    const length = repairOnEditorLineNumsAndFixes.length;
-    for (let i = 0; i < length; ++i) {
-      if (
-        vulOnEditorLineNumsAndContents[i].numOnEditor !==
-        repairOnEditorLineNumsAndFixes[i].numOnEditor
-      ) {
-        return makeLeft({
-          type: 'VUL_AND_REPAIR_ARRAY_NOT_IDENTICAL_NUM',
-          msg: `List of vul lines:
-            ${vulOnEditorLineNumsAndContents.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)} 
-          List of repair lines:
-            ${repairOnEditorLineNumsAndFixes.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)}`
-        });
-      }
-    }
+    // const length = repairOnEditorLineNumsAndFixes.length;
+    // for (let i = 0; i < length; ++i) {
+    //   if (
+    //     vulOnEditorLineNumsAndContents[i].numOnEditor !==
+    //     repairOnEditorLineNumsAndFixes[i].numOnEditor
+    //   ) {
+    //     return makeLeft({
+    //       type: 'VUL_AND_REPAIR_ARRAY_NOT_IDENTICAL_NUM',
+    //       msg: `List of vul lines:
+    //         ${vulOnEditorLineNumsAndContents.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)}
+    //       List of repair lines:
+    //         ${repairOnEditorLineNumsAndFixes.map((lineNumAndContent) => `${lineNumAndContent.numOnEditor}: ${lineNumAndContent.content}\n`)}`
+    //     });
+    //   }
+    // }
 
     // main UI logic for repairation
     const repairLineRanges: vscode.Range[] = [];

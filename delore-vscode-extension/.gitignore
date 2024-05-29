@@ -7,5 +7,6 @@ node_modules
 
 python/ai_models/*
 python/virtual_envs/*
+python/
 temp
 env

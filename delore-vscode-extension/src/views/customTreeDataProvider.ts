@@ -3,15 +3,15 @@ import { exit } from 'process';
 import path from 'path';
 
 import { InMemoryRepository } from '../repositories/inMemory.repository';
-import { FuncState } from '../model/state.model';
+import { FuncState } from '../type/state.type';
 import {
   EXTENSION_ID,
   ModelRole,
-  SUPPORTED_LANGUAGES
+  SUPPORTED_LANGUAGES,
+  ActiveModelSetting
 } from '../constants/config';
 
 import * as logger from '../utils/logger';
-import { ActiveModelSetting } from '../model/settings.model';
 import { resourceManager } from '../constants/config';
 import { isLeft, unwrapEither } from '../utils/either';
 

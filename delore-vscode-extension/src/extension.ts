@@ -4,7 +4,7 @@ import * as logger from './utils/logger';
 
 import dotenv from 'dotenv';
 
-import { FuncState, LineState } from './model/state.model';
+import { FuncState, LineState } from './type/state.type';
 import { CCppConfigDocumentSymbolProvider } from './views/customDocumentSymbolProvider';
 import { processedNoSpace, processedOneSpace } from './utils/sanitize';
 import { InMemoryRepository } from './repositories/inMemory.repository';
@@ -17,23 +17,26 @@ import path, { basename } from 'path';
 import {
   EXTENSION_ID,
   SUPPORTED_LANGUAGES,
-  resourceManager
+  resourceManager,
+  instructionsV2
 } from './constants/config';
-import { activateDeloreCommand } from './commands/activateDelore.command';
+import { activateDeloreCommandHandler } from './commands/activateDelore.command';
 import { isLeft, unwrapEither } from './utils/either';
 import {
   getVisibleTextEditor,
   isFileOpen,
   isFileOpenAndVisible
 } from './views/apiWrapper';
-import { instructionsV2 } from './constants/systemMessage';
+
 import {
   LLM_COMMAND_ID,
   promptGithubCopilotService
 } from './services/prompt.service';
 import { revealLineCommandHandler } from './commands/revealLine.command';
 import { onDidRenameFilesEventHandler } from './events/onDidRenameFilesEventHandler.event';
-import { syncRevealEventHandler } from './events/syncRevealEventHandler';
+import { syncRevealEventHandler } from './events/syncRevealEventHandler.event';
+import { EventHandler } from './EventHandler';
+import { CommandHandler } from './CommandHandler';
 
 const symbolKinds = [
   'file',
@@ -136,17 +139,31 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   /* ==================================================== */
-  /* HANDLE EVENT                                         */
+  /* COMMAND                                              */
+  /* ==================================================== */
+
+  // main
+  context.subscriptions.push(
+    CommandHandler.instance.activateDeloreCommandWrapper(
+      context.extensionPath,
+      outlineTreeDataProvider
+    )
+  );
+
+  // Auto scroll when clicking on custom outlines
+  context.subscriptions.push(
+    CommandHandler.instance.revealLineCommandWrapper()
+  );
+
+  /* ==================================================== */
+  /* EVENT                                                */
   /* ==================================================== */
 
   // Preserve funcState and tempState when a file is relocated or renamed
-  context.subscriptions.push(onDidRenameFilesEventHandler());
-
-  // Auto scroll when clicking on custom outlines
-  context.subscriptions.push(revealLineCommandHandler());
+  context.subscriptions.push(EventHandler.instance.onDidRenameFilesWrapper());
 
   // Auto scroll temp editor when source code editor scroll and vice versa
-  context.subscriptions.push(syncRevealEventHandler(context));
+  context.subscriptions.push(EventHandler.instance.syncRevealWrapper());
 
   const handleChangeEditor = async (editor?: vscode.TextEditor) => {
     if (!editor) {
@@ -285,10 +302,12 @@ export function activate(context: vscode.ExtensionContext) {
       // not very functional, meh, who cares
       for (let i = startLineNum; i <= endLineNum; ++i) {
         const textLine = editor.document.lineAt(i);
-
         const numOnEditor = textLine.lineNumber;
-        const unprocessedContent = textLine.text;
-        const processedContent = textLine.text.trim();
+
+        // no single-line comment, no space at both ends
+        // actually, it's half-processed content
+        const unprocessedContent = textLine.text.split('//')[0]; // preserve space at both ends
+        const processedContent = unprocessedContent.trim(); // no space at both ends
         const startCharOnEditor = textLine.range.start.character;
         const endCharOnEditor = textLine.range.end.character;
         lines.push({
@@ -384,6 +403,8 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
+    // NOTE: auto open and close temp file, but it's too unstable. There aren't any workarounds now.
+
     // if (!isFileOpen(tempState.fsPath)) {
     //   logger.debugSuccess('test');
     //   await openFileBeside(
@@ -459,20 +480,23 @@ export function activate(context: vscode.ExtensionContext) {
   /* RUN WHEN VSCODE START UP                             */
   /* ==================================================== */
 
-  const MAX_RETRIES = 5;
+  const MAX_ATTEMPTS = 3;
   const DELAY = 2000;
   let attempts = 0;
 
   const intervalId = setInterval(async () => {
     const editor = vscode.window.activeTextEditor;
-    if (editor || attempts >= MAX_RETRIES) {
+    if (editor || attempts >= MAX_ATTEMPTS) {
       clearInterval(intervalId);
       if (editor) {
         try {
           await handleChangeEditor(editor);
         } catch (err) {
-          logger.debugError(err);
-          logger.debugError('Failed to initialize custom outline tree view!');
+          logger.debugError(
+            err,
+            '\n',
+            'Failed to initialize custom outline tree view!'
+          );
         }
       } else {
         logger.debugError('No active editor found after maximum attempts!');
@@ -481,121 +505,6 @@ export function activate(context: vscode.ExtensionContext) {
       attempts++;
     }
   }, DELAY);
-
-  /* ==================================================== */
-  /* TESTING                                              */
-  /* ==================================================== */
-
-  // defines what the command will do
-  // context.subscriptions.push(
-  //   // Register the command handler for the /meow followup
-  //   vscode.commands.registerTextEditorCommand(
-  //     LLM_COMMAND_ID,
-  //     async (textEditor: vscode.TextEditor) => {
-  //       await vscode.window.withProgress(
-  //         {
-  //           location: vscode.ProgressLocation.Notification,
-  //           title: 'Running Delore x GitHub Copilot',
-  //           cancellable: true
-  //         },
-  //         async (progress, token) => {
-  //           token.onCancellationRequested(() => {
-  //             logger.notifyInfo(
-  //               'User cancelled Delore x GitHub Copilot service!'
-  //             );
-  //           });
-
-  //           progress.report({ message: 'Send chat request...' });
-
-  //           // // input
-  //           const text = textEditor.document.getText();
-
-  //           // // list of msgs
-  //           const messages = [
-  //             new vscode.LanguageModelChatSystemMessage(instructionsV2),
-  //             new vscode.LanguageModelChatUserMessage(text)
-  //           ];
-
-  //           // res
-  //           let chatResponse: vscode.LanguageModelChatResponse | undefined;
-  //           try {
-  //             chatResponse = await vscode.lm.sendChatRequest(
-  //               LANGUAGE_MODEL_ID,
-  //               messages,
-  //               {},
-  //               new vscode.CancellationTokenSource().token
-  //             );
-  //           } catch (err) {
-  //             // making the chat request might fail because
-  //             // - user consent not given
-  //             // - model does not exist
-  //             // - quote limits exceeded
-  //             // - other issues
-
-  //             // other error
-  //             logger.debugError(err);
-
-  //             if (err instanceof vscode.LanguageModelError) {
-  //               logger.debugError(err.name, '\n', err.message, '\n', err.code);
-  //             }
-  //             return;
-  //           }
-
-  //           // Clear the editor content before inserting new content
-  //           await textEditor.edit((edit) => {
-  //             const start = new vscode.Position(0, 0);
-  //             const end = new vscode.Position(
-  //               textEditor.document.lineCount - 1,
-  //               textEditor.document.lineAt(
-  //                 textEditor.document.lineCount - 1
-  //               ).text.length
-  //             );
-  //             edit.delete(new vscode.Range(start, end));
-  //           });
-
-  //           progress.report({ message: 'Write chat response...' });
-
-  //           // Stream the code into the editor as it is coming in from the Language Model
-  //           try {
-  //             for await (const fragment of chatResponse.stream) {
-  //               await textEditor.edit((edit) => {
-  //                 const lastLine = textEditor.document.lineAt(
-  //                   textEditor.document.lineCount - 1
-  //                 );
-  //                 const position = new vscode.Position(
-  //                   lastLine.lineNumber,
-  //                   lastLine.text.length
-  //                 );
-  //                 edit.insert(position, fragment);
-  //               });
-  //             }
-  //           } catch (err) {
-  //             // async response stream may fail, e.g network interruption or server side error
-  //             await textEditor.edit((edit) => {
-  //               const lastLine = textEditor.document.lineAt(
-  //                 textEditor.document.lineCount - 1
-  //               );
-  //               const position = new vscode.Position(
-  //                 lastLine.lineNumber,
-  //                 lastLine.text.length
-  //               );
-  //               edit.insert(position, (<Error>err).message);
-  //             });
-  //           }
-
-  //           progress.report({ message: 'Finished.' });
-  //         }
-  //       );
-  //     }
-  //   )
-  // );
-
-  context.subscriptions.push(
-    vscode.commands.registerTextEditorCommand(
-      `${EXTENSION_ID}.activateDelore`,
-      activateDeloreCommand(context.extensionPath, outlineTreeDataProvider)
-    )
-  );
 }
 
 // This method is called when your extension is deactivated

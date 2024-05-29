@@ -14,14 +14,10 @@ import {
   LocalizationModelOutput,
   RepairationModelOutput,
   TempState
-} from '../model/state.model';
+} from '../type/state.type';
 import { ModelRole, modelRoles } from '../constants/config';
-import {
-  mergeDetectionModelOutputs,
-  mergeLocalizationModelOutputs,
-  mergeRepairationModelOutputs
-} from '../services/mergeResult.service';
 import { capitalize } from '../utils/misc';
+import { ServiceHandler } from '../ServiceHandler';
 
 type RepositoryErrorType =
   | 'EDITOR_FS_PATH_EMPTY'
@@ -331,9 +327,10 @@ export class InMemoryRepository {
 
       switch (modelRole) {
         case 'detection':
-          func.mergeDetectionResult = mergeDetectionModelOutputs(
-            func.detectionResults
-          );
+          func.mergeDetectionResult =
+            ServiceHandler.instance.mergeDetectionModelOutputsWrapper(
+              func.detectionResults
+            );
 
           // debug
           logger.debugSuccess(
@@ -344,9 +341,10 @@ export class InMemoryRepository {
 
           break;
         case 'localization':
-          func.mergeLocalizationResult = mergeLocalizationModelOutputs(
-            func.localizationResults
-          );
+          func.mergeLocalizationResult =
+            ServiceHandler.instance.mergeLocalizationModelOutputsWrapper(
+              func.localizationResults
+            );
 
           // debug
           logger.debugSuccess(
@@ -357,9 +355,10 @@ export class InMemoryRepository {
 
           break;
         case 'repairation':
-          func.mergeRepairationResult = mergeRepairationModelOutputs(
-            func.repairationResults
-          );
+          func.mergeRepairationResult =
+            ServiceHandler.instance.mergeRepairationModelOutputsWrapper(
+              func.repairationResults
+            );
 
           // debug
           logger.debugSuccess(

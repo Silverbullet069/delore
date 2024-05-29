@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import { Either, isStrictNever, makeLeft, makeRight } from '../utils/either';
-import { instructionsV2 } from './systemMessage';
 
 // Data as Code, no external .env, .json or Database
 // NOTE: 'package.json' and 'data.ts' reflects each other
@@ -39,6 +38,12 @@ export type ModelName =
   | 'linevul'
   | 'github-copilot-gpt4'
   | 'gpt-4o';
+
+// package.json "delore.[detection|localization|repairation].active"
+export type ActiveModelSetting = {
+  name: string;
+  isActive: boolean;
+};
 
 // Convention: everything must have a value
 // Empty string has their meaning
@@ -362,3 +367,534 @@ export const resourceManager = {
     return makeRight(path);
   }
 } as const; // immutable
+
+/* ====================================================== */
+/* Github Copilot Instruction                             */
+/* ====================================================== */
+
+// https://towardsdatascience.com/detecting-insecure-code-with-llms-8b8ad923dd98
+// Zero-shot template: role + code delimiter + output json format: https://arxiv.org/abs/2308.14434
+// Think step-by-step : https://arxiv.org/abs/2205.11916
+// Upgrade with few-shots: include a few successful code-answer examples before asking LLM https://arxiv.org/abs/2005.14165
+// Upgrade with KNN Few-shots with Code fix: Include request for a fixed version if a CWE is found. Prompting both CWE detection + fix together bring "virtuous cycle" and force the LLM to "self-audit", think more deeply about the steps to accurately identify vulnerabilities (chain-of-thought prompting) https://arxiv.org/abs/2308.10345
+
+export const instructionsV2: string = `
+You are a brilliant software security expert.
+Your input: a vulnerable C/C++ function delimited by XML tag <function></function> and a list of lines whose vulnerability potential in the function are the highest. Each line delimited by XML tag <line num=></line>, "num" is the zero-based line number of that line in function.
+
+Your response: JSON format, with the following data
+{
+  "content": string (you write the line content specified in input)
+  "num": number (you write the "num" attribute in <line></line> XML tag here)
+  "isVulnerable": boolean (you determine the vulnerability status. If the line really contains any CWE security vulnerailities, you write "True". If the line does not contain any vulnerabilities, you write "False".)
+  "cwe": string (you determine the vulnerability number found)
+  "reason": string (you write the name of that vulnerability)
+  "fix": string (you rewrite the line with same functionality and vulnerability-free)
+}
+NOTE: "cwe", "reason" and "fix" is an empty string if "isVulnerable" is "false".
+
+Here are 2 examples that are out of context with future prompt:
+
+Example 1 input: <function>
+void nothing() {
+  return;
+}
+</function>
+
+<line num="0">void nothing() {</line>
+<line num="1">return;</line>
+<line num="2">}</line>
+
+Example 1 response: [
+  {
+    "content": "void nothing() {",
+    "num": 0,
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "return;",
+    "num": 1,
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "}",
+    "num": 2,
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  }
+]
+
+Example 2 Input: <function>
+  PHP_FUNCTION(imageconvolution)
+{
+zval *SIM, *hash_matrix;
+zval **var = NULL, **var2 = NULL;
+gdImagePtr im_src = NULL;
+double div, offset;
+int nelem, i, j, res;
+float matrix[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
+
+if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "radd", &SIM, &hash_matrix, &div, &offset) == FAILURE) {
+RETURN_FALSE;
+}
+
+ZEND_FETCH_RESOURCE(im_src, gdImagePtr, &SIM, -1, "Image", le_gd);
+
+nelem = zend_hash_num_elements(Z_ARRVAL_P(hash_matrix));
+if (nelem != 3) {
+php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");
+RETURN_FALSE;
+}
+
+for (i=0; i<3; i++) {
+if (zend_hash_index_find(Z_ARRVAL_P(hash_matrix), (i), (void **) &var) == SUCCESS && Z_TYPE_PP(var) == IS_ARRAY) {
+if (Z_TYPE_PP(var) != IS_ARRAY || zend_hash_num_elements(Z_ARRVAL_PP(var)) != 3 ) {
+php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");
+RETURN_FALSE;
+}
+
+for (j=0; j<3; j++) {
+if (zend_hash_index_find(Z_ARRVAL_PP(var), (j), (void **) &var2) == SUCCESS) {
+ SEPARATE_ZVAL(var2);
+ convert_to_double(*var2);
+ matrix[i][j] = (float)Z_DVAL_PP(var2);
+} else {
+php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have a 3x3 matrix");
+RETURN_FALSE;
+}
+}
+}
+}
+res = gdImageConvolution(im_src, matrix, (float)div, (float)offset);
+
+if (res) {
+RETURN_TRUE;
+} else {
+RETURN_FALSE;
+}
+}
+</function>
+
+<line num="7">float matrix[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};</line>
+<line num="9">if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "radd", &SIM, &hash_matrix, &div, &offset) == FAILURE) {</line>
+<line num="13">ZEND_FETCH_RESOURCE(im_src, gdImagePtr, &SIM, -1, "Image", le_gd);</line>
+<line num="15">nelem = zend_hash_num_elements(Z_ARRVAL_P(hash_matrix));</line>
+<line num="17">php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");</line>
+<line num="22">if (zend_hash_index_find(Z_ARRVAL_P(hash_matrix), (i), (void **) &var) == SUCCESS && Z_TYPE_PP(var) == IS_ARRAY) {</line>
+<line num="23">if (Z_TYPE_PP(var) != IS_ARRAY || zend_hash_num_elements(Z_ARRVAL_PP(var)) != 3 ) {</line>
+<line num="24">php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");</line>
+<line num="29">if (zend_hash_index_find(Z_ARRVAL_PP(var), (j), (void **) &var2) == SUCCESS) {</line>
+<line num="32">matrix[i][j] = (float)Z_DVAL_PP(var2);</line>
+
+Example 2 Response: [
+  {
+    "content": "float matrix[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};",
+    "num": "7",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "radd", &SIM, &hash_matrix, &div, &offset) == FAILURE) {",
+    "num": "9",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "ZEND_FETCH_RESOURCE(im_src, gdImagePtr, &SIM, -1, "Image", le_gd);",
+    "num": "13",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "nelem = zend_hash_num_elements(Z_ARRVAL_P(hash_matrix));",
+    "num": "15",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");",
+    "num": "17",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (zend_hash_index_find(Z_ARRVAL_P(hash_matrix), (i), (void **) &var) == SUCCESS && Z_TYPE_PP(var) == IS_ARRAY) {",
+    "num": "22",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (Z_TYPE_PP(var) != IS_ARRAY || zend_hash_num_elements(Z_ARRVAL_PP(var)) != 3 ) {",
+    "isVulnerable": "false",
+    "cwe": "23",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");",
+    "isVulnerable": "false",
+    "cwe": "24",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (zend_hash_index_find(Z_ARRVAL_PP(var), (j), (void **) &var2) == SUCCESS) {",
+    "num": "29",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+    {
+    "content": " matrix[i][j] = (float)Z_DVAL_PP(var2);"
+    "num": "32",
+    "isVulnerable": "true",
+    "cwe": "CWE-189",
+    "reason": "ext/gd/gd.c in PHP 5.5.x before 5.5.9 does not check data types, which might allow remote attackers to obtain sensitive information by using a (1) string or (2) array data type in place of a numeric data type, as demonstrated by an imagecrop function call with a string for the x dimension value, a different vulnerability than CVE-2013-7226.",
+    "fix": "matrix[i][j] = (float)Z_DVAL(dval);"
+  }
+]
+
+Think about the answer step by step, and only answer with JSON. I repeat, only answer with JSON.`;
+
+const examplesV2 = `\n
+Input: <function>
+gray_render_span( int y,
+int             count,
+const FT_Span*  spans,
+PWorker         worker )
+{
+unsigned char*  p;
+FT_Bitmap*      map = &worker->target;
+
+/* frst of all, compute the scanline offset */
+p = (unsigned char*)map->buffer - y * map->pitch;
+if ( map->pitch >= 0 )
+      p += ( map->rows - 1 ) * map->pitch;
+
+for ( ; count > 0; count--, spans++ )
+{
+unsigned char  coverage = spans->coverage;
+
+if ( coverage )
+{
+/* For small-spans it is faster to do it by ourselves than
+calling 'memset'. This is mainly due to the cost of the
+function call.
+*/
+if ( spans->len >= 8 )
+FT_MEM_SET( p + spans->x, (unsigned char)coverage, spans->len );
+else
+{
+unsigned char*  q = p + spans->x;
+
+switch ( spans->len )
+{
+case 7: *q++ = (unsigned char)coverage;
+case 6: *q++ = (unsigned char)coverage;
+case 5: *q++ = (unsigned char)coverage;
+case 4: *q++ = (unsigned char)coverage;
+case 3: *q++ = (unsigned char)coverage;
+case 2: *q++ = (unsigned char)coverage;
+case 1: *q   = (unsigned char)coverage;
+default:
+;
+}
+}
+}
+}
+}
+</function>
+
+<line>gray_render_span(</line>
+<line>p = (unsigned char*)map->buffer - y * map->pitch;</line>
+<line>p += ( map->rows - 1 ) * map->pitch;</line>
+<line>/* For small-spans it is faster to do it by ourselves than</line>
+<line>* calling 'memset'.  This is mainly due to the cost of the</line>
+<line>FT_MEM_SET( p + spans->x, (unsigned char)coverage, spans->len );</line>
+<line>unsigned char*  q = p + spans->x;</line>
+<line>case 7: *q++ = (unsigned char)coverage;</line>
+<line>case 5: *q++ = (unsigned char)coverage;</line>
+<line>case 3: *q++ = (unsigned char)coverage;</line>
+
+Response: [
+  {
+    "content": "gray_render_span(",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "p = (unsigned char*)map->buffer - y * map->pitch;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "p += ( map->rows - 1 ) * map->pitch;",
+    "isVulnerable": "true",
+    "cwe": "CWE-189",
+    "reason": "Integer overflow in the gray_render_span function in smooth/ftgrays.c in FreeType before 2.4.0 allows remote attackers to cause a denial of service (application crash) or possibly execute arbitrary code via a crafted font file.",
+    "fix": "p += (unsigned)( ( map->rows - 1 ) * map->pitch );"
+  },
+  {
+    "content": "/* For small-spans it is faster to do it by ourselves than",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "* calling 'memset'.  This is mainly due to the cost of the",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "FT_MEM_SET( p + spans->x, (unsigned char)coverage, spans->len );",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "unsigned char*  q = p + spans->x;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "case 7: *q++ = (unsigned char)coverage;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "case 5: *q++ = (unsigned char)coverage;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "case 3: *q++ = (unsigned char)coverage;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  }
+]
+
+Input: <function>
+  PHP_FUNCTION(imageconvolution)
+{
+zval *SIM, *hash_matrix;
+zval **var = NULL, **var2 = NULL;
+gdImagePtr im_src = NULL;
+double div, offset;
+int nelem, i, j, res;
+float matrix[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
+
+if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "radd", &SIM, &hash_matrix, &div, &offset) == FAILURE) {
+RETURN_FALSE;
+}
+
+ZEND_FETCH_RESOURCE(im_src, gdImagePtr, &SIM, -1, "Image", le_gd);
+
+nelem = zend_hash_num_elements(Z_ARRVAL_P(hash_matrix));
+if (nelem != 3) {
+php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");
+RETURN_FALSE;
+}
+
+for (i=0; i<3; i++) {
+if (zend_hash_index_find(Z_ARRVAL_P(hash_matrix), (i), (void **) &var) == SUCCESS && Z_TYPE_PP(var) == IS_ARRAY) {
+if (Z_TYPE_PP(var) != IS_ARRAY || zend_hash_num_elements(Z_ARRVAL_PP(var)) != 3 ) {
+php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");
+RETURN_FALSE;
+}
+
+for (j=0; j<3; j++) {
+if (zend_hash_index_find(Z_ARRVAL_PP(var), (j), (void **) &var2) == SUCCESS) {
+ SEPARATE_ZVAL(var2);
+ convert_to_double(*var2);
+ matrix[i][j] = (float)Z_DVAL_PP(var2);
+} else {
+php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have a 3x3 matrix");
+RETURN_FALSE;
+}
+}
+}
+}
+res = gdImageConvolution(im_src, matrix, (float)div, (float)offset);
+
+if (res) {
+RETURN_TRUE;
+} else {
+RETURN_FALSE;
+}
+}
+</function>
+
+<line>float matrix[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};</line>
+<line>if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "radd", &SIM, &hash_matrix, &div, &offset) == FAILURE) {</line>
+<line>matrix[i][j] = (float)Z_DVAL_PP(var2);</line>
+<line>ZEND_FETCH_RESOURCE(im_src, gdImagePtr, &SIM, -1, "Image", le_gd);</line>
+<line>nelem = zend_hash_num_elements(Z_ARRVAL_P(hash_matrix));</line>
+<line>php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");</line>
+<line>if (zend_hash_index_find(Z_ARRVAL_P(hash_matrix), (i), (void **) &var) == SUCCESS && Z_TYPE_PP(var) == IS_ARRAY) {</line>
+<line>if (Z_TYPE_PP(var) != IS_ARRAY || zend_hash_num_elements(Z_ARRVAL_PP(var)) != 3 ) {</line>
+<line>php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");</line>
+<line>if (zend_hash_index_find(Z_ARRVAL_PP(var), (j), (void **) &var2) == SUCCESS) {</line>
+
+Response: [
+  {
+    "content": "float matrix[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "radd", &SIM, &hash_matrix, &div, &offset) == FAILURE) {",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": " matrix[i][j] = (float)Z_DVAL_PP(var2);"
+    "isVulnerable": "true",
+    "cwe": "CWE-189",
+    "reason": "ext/gd/gd.c in PHP 5.5.x before 5.5.9 does not check data types, which might allow remote attackers to obtain sensitive information by using a (1) string or (2) array data type in place of a numeric data type, as demonstrated by an imagecrop function call with a string for the x dimension value, a different vulnerability than CVE-2013-7226.",
+    "fix": "matrix[i][j] = (float)Z_DVAL(dval);"
+  },
+  {
+    "content": "ZEND_FETCH_RESOURCE(im_src, gdImagePtr, &SIM, -1, "Image", le_gd);",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "nelem = zend_hash_num_elements(Z_ARRVAL_P(hash_matrix));",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (zend_hash_index_find(Z_ARRVAL_P(hash_matrix), (i), (void **) &var) == SUCCESS && Z_TYPE_PP(var) == IS_ARRAY) {",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (Z_TYPE_PP(var) != IS_ARRAY || zend_hash_num_elements(Z_ARRVAL_PP(var)) != 3 ) {",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must have 3x3 array");",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (zend_hash_index_find(Z_ARRVAL_PP(var), (j), (void **) &var2) == SUCCESS) {",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  }
+]
+
+Example 2 input: <function>
+  static inline int acm_set_control(struct acm *acm, int control){ 
+ if (acm->quirks & QUIRK_CONTROL_LINE_STATE) 
+  return -EOPNOTSUPP; 
+ 
+ return acm_ctrl_msg(acm, USB_CDC_REQ_SET_CONTROL_LINE_STATE, 
+   control, NULL, 0); 
+} 
+</function>
+
+<line>static inline int acm_set_control(struct acm *acm, int control){</line>
+<line>if (acm->quirks & QUIRK_CONTROL_LINE_STATE)</line>
+<line>return -EOPNOTSUPP;</line>
+<line>return acm_ctrl_msg(acm, USB_CDC_REQ_SET_CONTROL_LINE_STATE,</line>
+<line>control, NULL, 0);</line>
+
+Example 2 response: [
+  {
+    "content": "static inline int acm_set_control(struct acm *acm, int control){",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (acm->quirks & QUIRK_CONTROL_LINE_STATE)",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "return -EOPNOTSUPP;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content":"return acm_ctrl_msg(acm, USB_CDC_REQ_SET_CONTROL_LINE_STATE,",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "control, NULL, 0);",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  }
+]`;

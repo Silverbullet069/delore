@@ -1,0 +1,281 @@
+export const OPEN_CWE_API = 'https://www.opencve.io/api/cwe/';
+export const TOP_25_MOST_DANGEROUS_CWEs = [
+  'CWE-787',
+  'CWE-79',
+  'CWE-125',
+  'CWE-20',
+  'CWE-78',
+  'CWE-89',
+  'CWE-416',
+  'CWE-22',
+  'CWE-352',
+  'CWE-434',
+  'CWE-306',
+  'CWE-190',
+  'CWE-502',
+  'CWE-287',
+  'CWE-476',
+  'CWE-798',
+  'CWE-119',
+  'CWE-862',
+  'CWE-276',
+  'CWE-200',
+  'CWE-522',
+  'CWE-732',
+  'CWE-611',
+  'CWE-918',
+  'CWE-77'
+];
+
+export const TOP_10_MOST_CORRECT_PREDICTED_CWEs = [
+  'CWE-284',
+  'CWE-269',
+  'CWE-254',
+  'CWE-415',
+  'CWE-311',
+  'CWE-22',
+  'CWE-17',
+  'CWE-617',
+  'CWE-358',
+  'CWE-285'
+];
+
+export const learnCWEs = `
+Learn about the following 35 CWEs description in JSON format. Do not print anything:
+
+1.{"id": "CWE-787", "name": "Out-of-bounds Write", "description": "The software writes data past the end, or before the beginning, of the intended buffer."}
+
+2.{"id": "CWE-79", "name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')", "description": "The software does not neutralize or incorrectly neutralizes user-controllable input before it is placed in output that is used as a web page that is served to other users."}
+
+3.{"id": "CWE-125", "name": "Out-of-bounds Read", "description": "The software reads data past the end, or before the beginning, of the intended buffer."}
+
+4.{"id": "CWE-20", "name": "Improper Input Validation", "description": "The product receives input or data, but it does\n        not validate or incorrectly validates that the input has the\n        properties that are required to process the data safely and\n        correctly."}
+
+5.{"id": "CWE-78", "name": "Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')", "description": "The software constructs all or part of an OS command using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify the intended OS command when it is sent to a downstream component."}
+
+6.{"id": "CWE-89", "name": "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')", "description": "The software constructs all or part of an SQL command using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify the intended SQL command when it is sent to a downstream component."}
+
+7.{"id": "CWE-416", "name": "Use After Free", "description": "Referencing memory after it has been freed can cause a program to crash, use unexpected values, or execute code."}
+
+8.{"id": "CWE-22", "name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')", "description": "The software uses external input to construct a pathname that is intended to identify a file or directory that is located underneath a restricted parent directory, but the software does not properly neutralize special elements within the pathname that can cause the pathname to resolve to a location that is outside of the restricted directory."}
+
+9.{"id": "CWE-352", "name": "Cross-Site Request Forgery (CSRF)", "description": "The web application does not, or can not, sufficiently verify whether a well-formed, valid, consistent request was intentionally provided by the user who submitted the request."}
+
+10.{"id": "CWE-434", "name": "Unrestricted Upload of File with Dangerous Type", "description": "The software allows the attacker to upload or transfer files of dangerous types that can be automatically processed within the product's environment."}
+
+11.{"id": "CWE-306", "name": "Missing Authentication for Critical Function", "description": "The software does not perform any authentication for functionality that requires a provable user identity or consumes a significant amount of resources."}
+
+12.{"id": "CWE-190", "name": "Integer Overflow or Wraparound", "description": "The software performs a calculation that can produce an integer overflow or wraparound, when the logic assumes that the resulting value will always be larger than the original value. This can introduce other weaknesses when the calculation is used for resource management or execution control."}
+
+13.{"id": "CWE-502", "name": "Deserialization of Untrusted Data", "description": "The application deserializes untrusted data without sufficiently verifying that the resulting data will be valid."}
+
+14.{"id": "CWE-287", "name": "Improper Authentication", "description": "When an actor claims to have a given identity, the software does not prove or insufficiently proves that the claim is correct."}
+
+15.{"id": "CWE-476", "name": "NULL Pointer Dereference", "description": "A NULL pointer dereference occurs when the application dereferences a pointer that it expects to be valid, but is NULL, typically causing a crash or exit."}
+
+16.{"id": "CWE-798", "name": "Use of Hard-coded Credentials", "description": "The software contains hard-coded credentials, such as a password or cryptographic key, which it uses for its own inbound authentication, outbound communication to external components, or encryption of internal data."}
+
+17.{"id": "CWE-119", "name": "Improper Restriction of Operations within the Bounds of a Memory Buffer", "description": "The software performs operations on a memory buffer, but it can read from or write to a memory location that is outside of the intended boundary of the buffer."}
+
+18.{"id": "CWE-862", "name": "Missing Authorization", "description": "The software does not perform an authorization check when an actor attempts to access a resource or perform an action."}
+
+19.{"id": "CWE-276", "name": "Incorrect Default Permissions", "description": "During installation, installed file permissions are set to allow anyone to modify those files."}
+
+20.{"id": "CWE-200", "name": "Exposure of Sensitive Information to an Unauthorized Actor", "description": "The product exposes sensitive information to an actor that is not explicitly authorized to have access to that information."}
+
+21.{"id": "CWE-522", "name": "Insufficiently Protected Credentials", "description": "The product transmits or stores authentication credentials, but it uses an insecure method that is susceptible to unauthorized interception and/or retrieval."}
+
+22.{"id": "CWE-732", "name": "Incorrect Permission Assignment for Critical Resource", "description": "The product specifies permissions for a security-critical resource in a way that allows that resource to be read or modified by unintended actors."}
+
+23.{"id": "CWE-611", "name": "Improper Restriction of XML External Entity Reference", "description": "The software processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control, causing the product to embed incorrect documents into its output."}
+
+24.{"id": "CWE-918", "name": "Server-Side Request Forgery (SSRF)", "description": "The web server receives a URL or similar request from an upstream component and retrieves the contents of this URL, but it does not sufficiently ensure that the request is being sent to the expected destination."}
+
+25.{"id": "CWE-77", "name": "Improper Neutralization of Special Elements used in a Command ('Command Injection')", "description": "The software constructs all or part of a command using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify the intended command when it is sent to a downstream component."}
+
+26.{"id": "CWE-284", "name": "Improper Access Control", "description": "The software does not restrict or incorrectly restricts access to a resource from an unauthorized actor."}
+
+27.{"id": "CWE-269", "name": "Improper Privilege Management", "description": "The software does not properly assign, modify, track, or check privileges for an actor, creating an unintended sphere of control for that actor."}
+
+28.{"id": "CWE-254", "name": "7PK - Security Features", "description": "Software security is not security software. Here we're concerned with topics like authentication, access control, confidentiality, cryptography, and privilege management."}
+
+29.{"id": "CWE-415", "name": "Double Free", "description": "The product calls free() twice on the same memory address, potentially leading to modification of unexpected memory locations."}
+
+30.{"id": "CWE-311", "name": "Missing Encryption of Sensitive Data", "description": "The software does not encrypt sensitive or critical information before storage or transmission."}
+
+31.{"id": "CWE-22", "name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')", "description": "The software uses external input to construct a pathname that is intended to identify a file or directory that is located underneath a restricted parent directory, but the software does not properly neutralize special elements within the pathname that can cause the pathname to resolve to a location that is outside of the restricted directory."}
+
+32.{"id": "CWE-17", "name": "DEPRECATED: Code", "description": "This entry has been deprecated.  It was originally used for organizing the Development View (CWE-699) and some other views, but it introduced unnecessary complexity and depth to the resulting tree."}
+
+33.{"id": "CWE-617", "name": "Reachable Assertion", "description": "The product contains an assert() or similar statement that can be triggered by an attacker, which leads to an application exit or other behavior that is more severe than necessary."}
+
+34.{"id": "CWE-358", "name": "Improperly Implemented Security Check for Standard", "description": "The software does not implement or incorrectly implements one or more security-relevant checks as specified by the design of a standardized algorithm, protocol, or technique."}
+
+35.{"id": "CWE-285", "name": "Improper Authorization", "description": "The software does not perform or incorrectly performs an authorization check when an actor attempts to access a resource or perform an action."}
+`;
+
+const instructionsV1 = `You are a security expert whose job is to fix vulnerabilities in ONE C/C++ function. Your provided input will be:
+- ONE AND ONLY ONE C/C++ function (delimited with XML open and close tag <function> and </function>) that is deemed to be vulnerable by me. 
+- A unique set of lines that extracted from that function (delimited with XML open and close tag: <line> and </line>). Only 1 or 2 lines have the highest vulnerability potential, the rest are false positives.
+
+Your output will be a TS object which has the following format and value type:
+{
+  "isFunctionVulnerable": boolean,
+  "lines": {
+    "content": string,
+    "isVulnerable": boolean
+    "suggestion": string
+  }[]
+}
+
+Context:
+- "isFunctionVulnerable": Answer "Whether or not the specified function is vulnerable or not?". Rely on my judgement about saying the function is vulnerable from the start. You can only answer "true" or "false" here, since its type is boolean. You can only deduce vulnerability or not using CWE/CVE characteristics.
+- "lines": an array of objects the specify the information of every lines inside the function. Each element consists of 3 properties:
++ "content": the text content of the line. It's a string.
++ "isVulnerable": Answer "Whether or not this line is vulnerable or not?". Rely on my judgement about saying some of the lines have the highest vulnerability potential from the start. You can only answer "true" or "false" here, since its type is boolean. You can only deduce vulnerability or not using CWE/CVE characteristics. 
++ "suggestion": Answer "How will you fix this line if you deemed it vulnerable?". Write CWE/CVE type of that line's vulnerability, if it had one. Don't think it's CWE-119: Buffer overflow.
+End of context.`;
+
+const example = `
+Input: <function>
+void nothing() {
+  return;
+}
+</function>
+
+<line>void nothing() {</line>
+<line>return;</line>
+
+Response: [
+  {
+    "content": "void nothing() {",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "return;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  }
+]`;
+
+const example2 = `Example 2 input: <function>
+xmlXPathNextPrecedingInternal(xmlXPathParserContextPtr ctxt,
+xmlNodePtr cur)
+{
+if ((ctxt == NULL) || (ctxt->context == NULL)) return(NULL);
+    if ((ctxt->context->node->type == XML_ATTRIBUTE_NODE) ||
+ (ctxt->context->node->type == XML_NAMESPACE_DECL))
+ return(NULL);
+if (cur == NULL) {
+cur = ctxt->context->node;
+if (cur == NULL)
+return (NULL);
+ctxt->ancestor = cur->parent;
+}
+if ((cur->prev != NULL) && (cur->prev->type == XML_DTD_NODE))
+cur = cur->prev;
+while (cur->prev == NULL) {
+cur = cur->parent;
+if (cur == NULL)
+return (NULL);
+if (cur == ctxt->context->doc->children)
+return (NULL);
+if (cur != ctxt->ancestor)
+return (cur);
+ctxt->ancestor = cur->parent;
+}
+cur = cur->prev;
+while (cur->last != NULL)
+cur = cur->last;
+return (cur);
+}
+</function>
+
+<line>xmlXPathNextPrecedingInternal(xmlXPathParserContextPtr ctxt,</line>
+<line>if ((ctxt == NULL) || (ctxt->context == NULL)) return(NULL);</line>
+<line>if ((ctxt->context->node->type == XML_ATTRIBUTE_NODE) ||</line>
+<line> (ctxt->context->node->type == XML_NAMESPACE_DECL))</line>
+<line>if ((cur->prev != NULL) && (cur->prev->type == XML_DTD_NODE))</line>
+<line>while (cur->prev == NULL) {</line>
+<line>if (cur == ctxt->context->doc->children)</line>
+<line>if (cur != ctxt->ancestor)</line>
+<line>ctxt->ancestor = cur->parent;</line>
+<line>while (cur->last != NULL)</line>
+
+Example 2 response: [
+  {
+    "content": "xmlXPathNextPrecedingInternal(xmlXPathParserContextPtr ctxt,",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if ((ctxt == NULL) || (ctxt->context == NULL)) return(NULL);",
+    "isVulnerable": "true",
+    "cwe": "",
+    "reason": "Apply behaviour change fix from upstream for previous XPath change",
+    "fix": ""
+  },
+  {
+    "content": "if ((ctxt->context->node->type == XML_ATTRIBUTE_NODE) ||",
+    "isVulnerable": "true",
+    "cwe": "",
+    "reason": "Apply behaviour change fix from upstream for previous XPath change",
+    "fix": ""
+  },
+  {
+    "content":" (ctxt->context->node->type == XML_NAMESPACE_DECL))",
+    "isVulnerable": "true",
+    "cwe": "",
+    "reason": "Apply behaviour change fix from upstream for previous XPath change",
+    "fix": ""
+  },
+  {
+    "content": "if ((cur->prev != NULL) && (cur->prev->type == XML_DTD_NODE))",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "while (cur->prev == NULL) {",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (cur == ctxt->context->doc->children)",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "if (cur != ctxt->ancestor)",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "ctxt->ancestor = cur->parent;",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+  {
+    "content": "while (cur->last != NULL)",
+    "isVulnerable": "false",
+    "cwe": "",
+    "reason": "",
+    "fix": ""
+  },
+]`;

@@ -7,7 +7,7 @@ import {
   LocalizationModelOutput,
   RepairationModelLinesOutput,
   RepairationModelOutput
-} from '../model/state.model';
+} from '../type/state.type';
 import {
   Either,
   isLeft,
@@ -60,7 +60,7 @@ const handleMergeLocalizationResult = (
     currentOutput.lines.length === 0 &&
     nextOutput.lines.length !== 0
   ) {
-    return makeRight(nextOutput);
+    return makeRight({ ...nextOutput, modelName: 'merge' });
   }
 
   // every model output must retain the number of lines and line order of function in editor
@@ -194,7 +194,7 @@ const handleMergeRepairationResult = (
       } satisfies RepairationModelLinesOutput;
     });
 
-    return makeRight(nextOutput);
+    return makeRight({ ...nextOutput, modelName: 'merge' });
   }
 
   // every model output must retain the number of lines and line order of function in editor
