@@ -70,7 +70,7 @@ export const activateDeloreCommandHandler = (
                 async (viewProgress, viewToken) => {
                   viewProgress.report({ message: 'Running...' });
 
-                  const detectionServiceEither =
+                  const detectionRunModelServiceEither =
                     await ServiceHandler.instance.runModelServiceWrapper(
                       extensionPath,
                       'detection',
@@ -79,14 +79,14 @@ export const activateDeloreCommandHandler = (
                       detectionToken
                     );
 
-                  if (isLeft(detectionServiceEither)) {
-                    const err = unwrapEither(detectionServiceEither);
+                  if (isLeft(detectionRunModelServiceEither)) {
+                    const err = unwrapEither(detectionRunModelServiceEither);
                     logger.debugError(err.type, '\n', err.msg);
                     isModelRun = false;
                     return;
                   }
 
-                  isModelRun = unwrapEither(detectionServiceEither);
+                  isModelRun = unwrapEither(detectionRunModelServiceEither);
                   return;
                 }
               ); // end of view progress
@@ -128,7 +128,7 @@ export const activateDeloreCommandHandler = (
                   viewProgress.report({ message: 'Running...' });
 
                   // NOTE: this service has a little different logic, since it uses detection result
-                  const localizationServiceEither =
+                  const localizationRunModelServiceEither =
                     await ServiceHandler.instance.runModelServiceWrapper(
                       extensionPath,
                       'localization',
@@ -137,14 +137,14 @@ export const activateDeloreCommandHandler = (
                       localizationToken
                     );
 
-                  if (isLeft(localizationServiceEither)) {
-                    const err = unwrapEither(localizationServiceEither);
+                  if (isLeft(localizationRunModelServiceEither)) {
+                    const err = unwrapEither(localizationRunModelServiceEither);
                     logger.debugError(err.type, '\n', err.msg);
                     isModelRun = false;
                     return;
                   }
 
-                  isModelRun = unwrapEither(localizationServiceEither);
+                  isModelRun = unwrapEither(localizationRunModelServiceEither);
                   return;
                 }
               );
@@ -181,7 +181,7 @@ export const activateDeloreCommandHandler = (
                   viewProgress.report({ message: 'Running...' });
 
                   // NOTE: for now, repairation use VSCode's languageModels API
-                  const repairationServiceEither =
+                  const repairationRunModelServiceEither =
                     await ServiceHandler.instance.runModelServiceWrapper(
                       extensionPath,
                       'repairation',
@@ -190,14 +190,14 @@ export const activateDeloreCommandHandler = (
                       repairationToken
                     );
 
-                  if (isLeft(repairationServiceEither)) {
-                    const err = unwrapEither(repairationServiceEither);
+                  if (isLeft(repairationRunModelServiceEither)) {
+                    const err = unwrapEither(repairationRunModelServiceEither);
                     logger.debugError(err.type, '\n', err.msg);
                     isModelRun = false;
                     return;
                   }
 
-                  isModelRun = unwrapEither(repairationServiceEither);
+                  isModelRun = unwrapEither(repairationRunModelServiceEither);
                   return;
                 }
               );

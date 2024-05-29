@@ -530,14 +530,10 @@ export const runModelService = async (
         continue; // next func
       }
 
-      // only update if this is the last model
-      if (index === activeModels.length - 1) {
-        func.isRunDelore = true;
-      }
-
       // logger.debugSuccess(modelOutput);
       // Set flag
       isAtLeastOneModelRun = true;
+      func.isRunDelore = true;
     } // end iterate funcs
   } // end iterate models
 
