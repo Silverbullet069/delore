@@ -28,7 +28,3 @@ for filename in os.listdir(folder_path):
                 code_file_path = os.path.join(output_path,code_file_name)
                 with open(code_file_path, 'w',encoding='utf-8') as file:
                     file.write(data.get('code'))  
-
-
-
-
